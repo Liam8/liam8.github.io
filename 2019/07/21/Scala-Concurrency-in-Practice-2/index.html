@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"liam8.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="synchronized作为内置锁，使用简单，不易出错，然鹅确有相当的局限性，例如，无法从等待获取锁的阻塞中中断，无法设置获取锁的超时。所以JUC提供了另一种更灵活的加锁方式，即Lock。">
+<meta name="keywords" content="Scala,并发">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Scala并发编程实战 2：Lock 锁">
+<meta property="og:url" content="https://liam8.github.io/2019/07/21/Scala-Concurrency-in-Practice-2/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="synchronized作为内置锁，使用简单，不易出错，然鹅确有相当的局限性，例如，无法从等待获取锁的阻塞中中断，无法设置获取锁的超时。所以JUC提供了另一种更灵活的加锁方式，即Lock。">
+<meta property="og:locale" content="en-US">
+<meta property="og:updated_time" content="2020-04-25T08:30:17.394Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Scala并发编程实战 2：Lock 锁">
+<meta name="twitter:description" content="synchronized作为内置锁，使用简单，不易出错，然鹅确有相当的局限性，例如，无法从等待获取锁的阻塞中中断，无法设置获取锁的超时。所以JUC提供了另一种更灵活的加锁方式，即Lock。">
+
+<link rel="canonical" href="https://liam8.github.io/2019/07/21/Scala-Concurrency-in-Practice-2/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en-US'
+  };
+</script>
+
+  <title>Scala并发编程实战 2：Lock 锁 | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130013820-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-130013820-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?784a187bcdc24e0cc9d3c3d2284e2f3b";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Liam's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hello 2020 ！</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-spark">
+
+    <a href="/tags/Spark/" rel="section"><i class="fa fa-fw fa-star"></i>Spark</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/liam8" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en-US">
+    <link itemprop="mainEntityOfPage" href="https://liam8.github.io/2019/07/21/Scala-Concurrency-in-Practice-2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Scala并发编程实战 2：Lock 锁
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-07-21 10:04:21" itemprop="dateCreated datePublished" datetime="2019-07-21T10:04:21+08:00">2019-07-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-04-25 16:30:17" itemprop="dateModified" datetime="2020-04-25T16:30:17+08:00">2020-04-25</time>
+              </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>synchronized作为内置锁，使用简单，不易出错，然鹅确有相当的局限性，例如，无法从等待获取锁的阻塞中中断，无法设置获取锁的超时。<br>所以JUC提供了另一种更灵活的加锁方式，即Lock。<br><a id="more"></a></p>
+<h1 id="Lock"><a href="#Lock" class="headerlink" title="Lock"></a>Lock</h1><p>Lock接口定义如下</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Lock</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">lock</span><span class="params">()</span></span>;     </span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">lockInterruptibly</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException</span>;     </span><br><span class="line">    <span class="function"><span class="keyword">boolean</span> <span class="title">tryLock</span><span class="params">()</span></span>;     </span><br><span class="line">    <span class="function"><span class="keyword">boolean</span> <span class="title">tryLock</span><span class="params">(<span class="keyword">long</span> timeout, TimeUnit unit)</span> <span class="keyword">throws</span> InterruptedException</span>;     </span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">unlock</span><span class="params">()</span></span>;     </span><br><span class="line">    <span class="function">Condition <span class="title">newCondition</span><span class="params">()</span></span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从接口的定义不难发现，Lock不仅提供了常规的lock()阻塞式加锁，也提供了tryLock使得线程能在获取不到锁时，马上返回，<br>甚至可以等待锁一段时间后，再返回。lockInterruptibly则提供了可中断的阻塞式获取锁方式。</p>
+<p>Lock的锁需要显示释放，通常要与<code>try...finally</code>语句一起使用，避免死锁。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">lock.lock(); </span><br><span class="line"><span class="keyword">try</span> &#123;     </span><br><span class="line">   <span class="comment">// update object state     </span></span><br><span class="line">   <span class="comment">// catch exceptions and restore invariants if necessary </span></span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;     </span><br><span class="line">   lock.unlock(); </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="ReentrantLock"><a href="#ReentrantLock" class="headerlink" title="ReentrantLock"></a>ReentrantLock</h2><p>Lock最常用的实现类是ReentrantLock，这是一个<em>可重入锁</em>(synchronized也是)。</p>
+<p>ReentrantLock默认和内置锁一样，是非公平锁，但是支持<em>公平锁</em>模式，可以用<code>ReentrantLock(true)</code>创建公平锁。</p>
+<h3 id="可重入锁"><a href="#可重入锁" class="headerlink" title="可重入锁"></a>可重入锁</h3><p>所谓可重入锁，也就是说一个线程可以在持有该锁的时候，再次获取该锁。可重入锁通常与一个计数器关联，第一次获取锁的时候，计数器从0变为1，再次获取锁，变为2，以此类推。释放锁的时候，计数器每次减1，直至减为0，该锁才真正释放给其他线程。<br><strong>为啥需要可重入锁</strong><br>举个例子(JCP书上的)<br><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Widget</span> </span>&#123;     </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">doSomething</span><span class="params">()</span> </span>&#123;         </span><br><span class="line">        ... </span><br><span class="line">    &#125; </span><br><span class="line">&#125;  </span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LoggingWidget</span> <span class="keyword">extends</span> <span class="title">Widget</span> </span>&#123;     </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">doSomething</span><span class="params">()</span> </span>&#123;         </span><br><span class="line">        System.out.println(toString() + <span class="string">": calling doSomething"</span>);         </span><br><span class="line">        <span class="keyword">super</span>.doSomething();     </span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>子类覆盖了父类方法，并再次调用了父类的同步方法，如果锁不支持重入，则会导致死锁。</p>
+<h3 id="公平锁"><a href="#公平锁" class="headerlink" title="公平锁"></a>公平锁</h3><p>所谓公平锁，其实就是指锁的等待队列执行先进先出，等待最久的线程优先获得锁。<br><strong>但是内置锁和ReentrantLock默认都是非公平的，为啥？</strong><br>因为非公平锁的性能更好。一个事实是，一个线程从被唤醒到真正运行中间有不可忽视的延迟，这个延迟时间很可能长到足够一个运行中的线程获取锁，并完成操作，然后释放锁。也即是说，把锁给’等待最久的线程‘的过程中，可以让其他线程插队获取锁，并归还锁，还不会影响’等待最久的线程‘的运行。这样一来吞吐量就得到了提升。</p>
+<h1 id="Scala栗子"><a href="#Scala栗子" class="headerlink" title="Scala栗子"></a>Scala栗子</h1><figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> io.github.liam8.con</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.util.concurrent.<span class="type">TimeUnit</span></span><br><span class="line"><span class="keyword">import</span> java.util.concurrent.locks.&#123;<span class="type">Lock</span>, <span class="type">ReentrantLock</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">LockDemo</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">val</span> rtl: <span class="type">Lock</span> = <span class="keyword">new</span> <span class="type">ReentrantLock</span>()</span><br><span class="line"></span><br><span class="line">  <span class="keyword">var</span> inc: <span class="type">Int</span> = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">get</span></span>(): <span class="type">Int</span> = &#123;</span><br><span class="line">    rtl.lock()</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      inc</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      rtl.unlock()</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">addOne</span></span>(): <span class="type">Unit</span> = &#123;</span><br><span class="line">    rtl.lock()</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="type">TimeUnit</span>.<span class="type">SECONDS</span>.sleep(<span class="number">1</span>)</span><br><span class="line">      inc = <span class="number">1</span> + get()</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      rtl.unlock()</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="keyword">for</span> (i &lt;- <span class="number">1</span> to <span class="number">10</span>) &#123;</span><br><span class="line">      <span class="keyword">new</span> <span class="type">Thread</span> &#123;</span><br><span class="line">          <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">run</span></span>(): <span class="type">Unit</span> = &#123;</span><br><span class="line">            println(<span class="string">s"run thread <span class="subst">$i</span>"</span>)</span><br><span class="line">            addOne()</span><br><span class="line">          &#125;</span><br><span class="line">      &#125;.start()</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">      println(<span class="string">s"inc=<span class="subst">$inc</span>"</span>)</span><br><span class="line">      <span class="type">TimeUnit</span>.<span class="type">SECONDS</span>.sleep(<span class="number">1</span>)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><em>output</em><br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">run thread 3</span><br><span class="line">run thread 8</span><br><span class="line">run thread 1</span><br><span class="line">run thread 9</span><br><span class="line">run thread 7</span><br><span class="line">run thread 4</span><br><span class="line">run thread 5</span><br><span class="line">run thread 2</span><br><span class="line">run thread 10</span><br><span class="line">run thread 6</span><br><span class="line">inc=0</span><br><span class="line">inc=0</span><br><span class="line">inc=2</span><br><span class="line">inc=3</span><br><span class="line">inc=4</span><br><span class="line">inc=5</span><br><span class="line">inc=6</span><br><span class="line">inc=7</span><br><span class="line">inc=8</span><br><span class="line">inc=8</span><br><span class="line">inc=10</span><br><span class="line">inc=10</span><br><span class="line">inc=10</span><br></pre></td></tr></table></figure></p>
+<h1 id="本文代码"><a href="#本文代码" class="headerlink" title="本文代码"></a>本文代码</h1><p><a href="https://github.com/Liam8/learn-scala" target="_blank" rel="noopener">Github仓库</a></p>
+<p>转载请注明原文地址：<a href="https://liam-blog.ml/2019/07/21/Scala-Concurrency-in-Practice-2/" target="_blank" rel="noopener">https://liam-blog.ml/2019/07/21/Scala-Concurrency-in-Practice-2/</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/07/14/Scala-Concurrency-in-Practice-1/" rel="bookmark">Scala并发编程实战 1：Monitor与synchronized</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/08/26/Scala-Concurrency-Semaphore/" rel="bookmark">Scala并发编程实战 4：Semaphore 信号量模型</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/09/22/Scala-Concurrency-Executor/" rel="bookmark">Scala并发编程实战 5：Executor线程池</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/08/03/Scala-Concurrency-in-Practice-3/" rel="bookmark">Scala并发编程实战 3：Condition 条件变量</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/09/28/scala-implicit/" rel="bookmark">Scala implicit 隐式转换安全驾驶指南</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Scala/" rel="tag"># Scala</a>
+              <a href="/tags/并发/" rel="tag"># 并发</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/07/14/Scala-Concurrency-in-Practice-1/" rel="prev" title="Scala并发编程实战 1：Monitor与synchronized">
+      <i class="fa fa-chevron-left"></i> Scala并发编程实战 1：Monitor与synchronized
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/08/03/Scala-Concurrency-in-Practice-3/" rel="next" title="Scala并发编程实战 3：Condition 条件变量">
+      Scala并发编程实战 3：Condition 条件变量 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Lock"><span class="nav-number">1.</span> <span class="nav-text">Lock</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#ReentrantLock"><span class="nav-number">1.1.</span> <span class="nav-text">ReentrantLock</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#可重入锁"><span class="nav-number">1.1.1.</span> <span class="nav-text">可重入锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#公平锁"><span class="nav-number">1.1.2.</span> <span class="nav-text">公平锁</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Scala栗子"><span class="nav-number">2.</span> <span class="nav-text">Scala栗子</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#本文代码"><span class="nav-number">3.</span> <span class="nav-text">本文代码</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/uploads/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">32</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Liam8" title="GitHub → https://github.com/Liam8" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'forest',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '9c60518caffc425c4147',
+      clientSecret: '0c14ba2c826b077b0a921501a3652b7768e1dc3b',
+      repo        : 'gitalk-data',
+      owner       : 'liam8',
+      admin       : ['liam8'],
+      id          : '755b24e7fdfda0be3a668c3ab6ecf68e',
+        language: '',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</body>
+</html>

@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"liam8.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="创建线程是一个重量级操作，因为需要调用操作系统内核的API，所以最好不要频繁的创建和销毁线程，为了能够复用创建的线程，常用的办法的就是创建线程池。">
+<meta name="keywords" content="Scala,并发">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Scala并发编程实战 5：Executor线程池">
+<meta property="og:url" content="https://liam8.github.io/2019/09/22/Scala-Concurrency-Executor/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="创建线程是一个重量级操作，因为需要调用操作系统内核的API，所以最好不要频繁的创建和销毁线程，为了能够复用创建的线程，常用的办法的就是创建线程池。">
+<meta property="og:locale" content="en-US">
+<meta property="og:updated_time" content="2020-04-25T08:29:53.835Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Scala并发编程实战 5：Executor线程池">
+<meta name="twitter:description" content="创建线程是一个重量级操作，因为需要调用操作系统内核的API，所以最好不要频繁的创建和销毁线程，为了能够复用创建的线程，常用的办法的就是创建线程池。">
+
+<link rel="canonical" href="https://liam8.github.io/2019/09/22/Scala-Concurrency-Executor/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en-US'
+  };
+</script>
+
+  <title>Scala并发编程实战 5：Executor线程池 | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130013820-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-130013820-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?784a187bcdc24e0cc9d3c3d2284e2f3b";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Liam's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hello 2020 ！</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-spark">
+
+    <a href="/tags/Spark/" rel="section"><i class="fa fa-fw fa-star"></i>Spark</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/liam8" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en-US">
+    <link itemprop="mainEntityOfPage" href="https://liam8.github.io/2019/09/22/Scala-Concurrency-Executor/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Scala并发编程实战 5：Executor线程池
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-09-22 22:38:29" itemprop="dateCreated datePublished" datetime="2019-09-22T22:38:29+08:00">2019-09-22</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-04-25 16:29:53" itemprop="dateModified" datetime="2020-04-25T16:29:53+08:00">2020-04-25</time>
+              </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>创建线程是一个重量级操作，因为需要调用操作系统内核的API，所以最好不要频繁的创建和销毁线程，为了能够复用创建的线程，常用的办法的就是创建线程池。<br><a id="more"></a></p>
+<h1 id="Executor"><a href="#Executor" class="headerlink" title="Executor"></a>Executor</h1><p>java.util.concurren包中提供了若干接口和类来实现线程池，最常用的有Executor，ExecutorService，ThreadPoolExecutor。</p>
+<p>Executor接口很简单定义如下：<br><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Executor</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">execute</span><span class="params">(Runnable command)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个接口的目的在于将任务与执行机制解耦，使得用户不需要手动创建线程，只要交给Executor就行了。</p>
+<h1 id="ExecutorService"><a href="#ExecutorService" class="headerlink" title="ExecutorService"></a>ExecutorService</h1><p>ExecutorService接口则扩展了Executor接口，增加了若干实用的方法，最常用的两个方法：<br><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">//关闭线程池</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">shutdown</span><span class="params">()</span></span>;</span><br><span class="line"><span class="comment">//提交Callable任务以获取返回值</span></span><br><span class="line">&lt;T&gt; <span class="function">Future&lt;T&gt; <span class="title">submit</span><span class="params">(Callable&lt;T&gt; task)</span></span>;</span><br></pre></td></tr></table></figure></p>
+<p>AbstractExecutorService抽象类是ExecutorService的实现，实现了若干模板方法。</p>
+<p>最重要的类莫过于ThreadPoolExecutor，它是最最常用的ExecutorService实现类，下面重点说说。</p>
+<h1 id="ThreadPoolExecutor"><a href="#ThreadPoolExecutor" class="headerlink" title="ThreadPoolExecutor"></a>ThreadPoolExecutor</h1><p>ThreadPoolExecutor在构造时可以指定的参数最多有7个，另外还有3个使用一些默认参数的简化版本。<br><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">ThreadPoolExecutor</span><span class="params">(<span class="keyword">int</span> corePoolSize,</span></span></span><br><span class="line"><span class="function"><span class="params">                          <span class="keyword">int</span> maximumPoolSize,</span></span></span><br><span class="line"><span class="function"><span class="params">                          <span class="keyword">long</span> keepAliveTime,</span></span></span><br><span class="line"><span class="function"><span class="params">                          TimeUnit unit,</span></span></span><br><span class="line"><span class="function"><span class="params">                          BlockingQueue&lt;Runnable&gt; workQueue,</span></span></span><br><span class="line"><span class="function"><span class="params">                          ThreadFactory threadFactory,</span></span></span><br><span class="line"><span class="function"><span class="params">                          RejectedExecutionHandler handler)</span></span></span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>corePoolSize 是保留的核心线程数，即使线程处于空闲也不会被回收，除非设置了allowCoreThreadTimeOut属性。</li>
+<li>maximumPoolSize 最大线程数。当workQueue满了，会给新提交的任务创建新线程，这种情况下线程数会超过corePoolSize，但整个线程池的线程数必须有个上限，就是maximumPoolSize了。</li>
+<li>keepAliveTime 回收线程前，允许保留空闲线程的时长。</li>
+<li>workQueue 存储提交的任务的队列</li>
+<li>threadFactory 创建线程的工厂类(ThreadFactory这个接口就定义了一个方法<code>Thread newThread(Runnable r);</code>)</li>
+<li>handler handler用于没有可用线程（线程数达到最大值，没有空闲线程）且workQueue队列满了的时候。</li>
+</ul>
+<blockquote>
+<p>ThreadPoolExecutor 已经提供了以下 4 种策略。<br>CallerRunsPolicy：提交任务的线程自己去执行该任务。<br>AbortPolicy：默认的拒绝策略，会 throws RejectedExecutionException。<br>DiscardPolicy：直接丢弃任务，没有任何异常抛出。<br>DiscardOldestPolicy：丢弃最老的任务，其实就是把最早进入工作队列的任务丢弃，然后把新任务加入到工作队列。</p>
+</blockquote>
+<p>ThreadPoolExecutory的构造函数一共有四种，使得用户可以省略threadFactory和handler中的一个或两个。</p>
+<p><em>需要注意的情况</em><br>当maximumPoolSize&gt;corePoolSize时，如果workQueue满了，新提交的任务会被新线程马上执行，而之前提交的在队列中等待的队列则继续等待。<br>也就是说后提交的任务可能先执行了。<br>当新线程执行完新提交的这个任务后，会转去执行队列中的数据，这时消费任务队列的线程数可能会大于corePoolSize，消费速度加快了。<br>下面做个实验。<br><figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> io.github.liam8.con</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.util.concurrent.&#123;<span class="type">ArrayBlockingQueue</span>, <span class="type">Callable</span>, <span class="type">Future</span>, <span class="type">RejectedExecutionException</span>, <span class="type">ThreadPoolExecutor</span>, <span class="type">TimeUnit</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">ExecutorDemo</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="comment">// corePoolSize=1,maximumPoolSize=2,queue capacity=1</span></span><br><span class="line">    <span class="keyword">val</span> executor = <span class="keyword">new</span> <span class="type">ThreadPoolExecutor</span>(</span><br><span class="line">      <span class="number">1</span>,</span><br><span class="line">      <span class="number">2</span>,</span><br><span class="line">      <span class="number">10</span>,</span><br><span class="line">      <span class="type">TimeUnit</span>.<span class="type">SECONDS</span>,</span><br><span class="line">      <span class="keyword">new</span> <span class="type">ArrayBlockingQueue</span>[<span class="type">Runnable</span>](<span class="number">1</span>)</span><br><span class="line">    )</span><br><span class="line">    <span class="keyword">val</span> task1 = <span class="keyword">new</span> <span class="type">Runnable</span> &#123;</span><br><span class="line">      <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">run</span></span>(): <span class="type">Unit</span> = &#123;</span><br><span class="line">        println(<span class="string">"task1 running"</span>)</span><br><span class="line">        <span class="type">Thread</span>.sleep(<span class="number">3000</span>)</span><br><span class="line">        println(<span class="string">"task1 complete"</span>)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">val</span> task2 = <span class="keyword">new</span> <span class="type">Runnable</span> &#123;</span><br><span class="line">      <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">run</span></span>(): <span class="type">Unit</span> = &#123;</span><br><span class="line">        println(<span class="string">"task2 running"</span>)</span><br><span class="line">        <span class="type">Thread</span>.sleep(<span class="number">3000</span>)</span><br><span class="line">        println(<span class="string">"task2 complete"</span>)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">val</span> task3 = <span class="keyword">new</span> <span class="type">Callable</span>[<span class="type">String</span>] &#123;</span><br><span class="line">      <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">call</span></span>(): <span class="type">String</span> = &#123;</span><br><span class="line">        println(<span class="string">"task3 running"</span>)</span><br><span class="line">        <span class="type">Thread</span>.sleep(<span class="number">3000</span>)</span><br><span class="line">        println(<span class="string">"task3 complete"</span>)</span><br><span class="line">        <span class="string">"xxx"</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">val</span> task4 = <span class="keyword">new</span> <span class="type">Runnable</span> &#123;</span><br><span class="line">      <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">run</span></span>(): <span class="type">Unit</span> = &#123;</span><br><span class="line">        println(<span class="string">"task4 running"</span>)</span><br><span class="line">        <span class="type">Thread</span>.sleep(<span class="number">3000</span>)</span><br><span class="line">        println(<span class="string">"task4 complete"</span>)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">var</span> task2Result: <span class="type">Future</span>[<span class="type">String</span>] = <span class="literal">null</span></span><br><span class="line">    <span class="keyword">var</span> taskCount = <span class="number">1</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      executor.execute(task1)</span><br><span class="line">      println(<span class="string">"task1 submitted"</span>)</span><br><span class="line">      taskCount += <span class="number">1</span></span><br><span class="line">      executor.execute(task2)</span><br><span class="line">      println(<span class="string">"task2 submitted"</span>)</span><br><span class="line">      taskCount += <span class="number">1</span></span><br><span class="line">      task2Result = executor.submit(task3)</span><br><span class="line">      println(<span class="string">"task3 submitted"</span>)</span><br><span class="line">      taskCount += <span class="number">1</span></span><br><span class="line">      executor.execute(task4)</span><br><span class="line">      println(<span class="string">"task4 submitted"</span>)</span><br><span class="line">    &#125; <span class="keyword">catch</span> &#123;</span><br><span class="line">      <span class="keyword">case</span> e: <span class="type">RejectedExecutionException</span> =&gt; println(<span class="string">s"task <span class="subst">$taskCount</span> be rejected"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 起一个线程跟踪线程池大小</span></span><br><span class="line">    <span class="keyword">val</span> th = <span class="keyword">new</span> <span class="type">Thread</span> &#123;</span><br><span class="line">      <span class="keyword">var</span> threadNum = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">      <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">run</span></span>(): <span class="type">Unit</span> =</span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">          <span class="keyword">if</span> (executor.getPoolSize != threadNum) &#123;</span><br><span class="line">            threadNum = executor.getPoolSize</span><br><span class="line">            println(<span class="string">"pool size:"</span> + threadNum)</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="type">Thread</span>.sleep(<span class="number">100</span>)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    th.setDaemon(<span class="literal">true</span>)</span><br><span class="line">    th.start()</span><br><span class="line">    <span class="keyword">if</span> (task2Result != <span class="literal">null</span>) &#123;</span><br><span class="line">      println(task2Result.get(<span class="number">7</span>, <span class="type">TimeUnit</span>.<span class="type">SECONDS</span>))</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">Thread</span>.sleep(<span class="number">5000</span>)</span><br><span class="line">    executor.shutdown()</span><br><span class="line"></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>output</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">task1 running</span><br><span class="line">task1 submitted</span><br><span class="line">task2 submitted</span><br><span class="line">task3 submitted</span><br><span class="line">task3 running  //task3在task2之前运行了！</span><br><span class="line">task 4 be rejected // 线程数达到最大值，任务队列也满了，task4被拒绝(默认的handler)</span><br><span class="line">pool size:2</span><br><span class="line">task1 complete</span><br><span class="line">task3 complete</span><br><span class="line">xxx</span><br><span class="line">task2 running // 空闲的线程开始消费队列</span><br><span class="line">task2 complete</span><br><span class="line">pool size:0</span><br></pre></td></tr></table></figure>
+<h1 id="Executors"><a href="#Executors" class="headerlink" title="Executors"></a>Executors</h1><p>Executors是JUC包中的一个静态工厂类，其中除了newFixedThreadPool，newSingleThreadExecutor方法，其他方法都不推荐使用，因为其他方法创建的线程池使用的是无界队列，可能会占用过多内存，甚至OOM，所以建议使用有界队列。</p>
+<h1 id="ExecutionContext"><a href="#ExecutionContext" class="headerlink" title="ExecutionContext"></a>ExecutionContext</h1><p>Scala另外提供了ExecutionContext和Future来简化线程池的使用，Future可以接受一个ExecutionContext类型的隐式参数，将传入的函数提交到ExecutionContext的线程池中运行。<br>下面举个栗子，不做深入探讨。</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> io.github.liam8.con</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.util.concurrent.<span class="type">Executors</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> scala.concurrent.&#123;<span class="type">Await</span>, <span class="type">ExecutionContext</span>, <span class="type">ExecutionContextExecutorService</span>, <span class="type">Future</span>&#125;</span><br><span class="line"><span class="keyword">import</span> scala.concurrent.duration._</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">ExecutionContextDemo</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="keyword">val</span> pool = <span class="type">Executors</span>.newFixedThreadPool(<span class="number">2</span>)</span><br><span class="line">    <span class="keyword">implicit</span> <span class="keyword">val</span> ec: <span class="type">ExecutionContextExecutorService</span> = <span class="type">ExecutionContext</span>.fromExecutorService(pool)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> f = <span class="type">Future</span> &#123;</span><br><span class="line">      <span class="keyword">val</span> t = <span class="type">Thread</span>.currentThread().getName</span><br><span class="line">      println(<span class="string">s"<span class="subst">$t</span>: future is coming"</span>)</span><br><span class="line">      <span class="number">123</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> re = f.map(r =&gt; &#123;</span><br><span class="line">      <span class="keyword">val</span> t = <span class="type">Thread</span>.currentThread().getName</span><br><span class="line">      println(<span class="string">s"<span class="subst">$t</span>: mapping"</span>)</span><br><span class="line">      r * r</span><br><span class="line">    &#125;)</span><br><span class="line">    re.onSuccess &#123; <span class="keyword">case</span> x: <span class="type">Int</span> =&gt; println(x) &#125;</span><br><span class="line"></span><br><span class="line">    <span class="type">Await</span>.result(f, <span class="number">3.</span>seconds)</span><br><span class="line">    ec.shutdown()</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>output<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">pool-1-thread-1: future is coming</span><br><span class="line">pool-1-thread-2: mapping</span><br><span class="line">15129</span><br></pre></td></tr></table></figure></p>
+<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><p><a href="https://time.geekbang.org/column/article/90771" target="_blank" rel="noopener">Executor与线程池：如何创建正确的线程池？</a></p>
+<p><a href="https://www.freecodecamp.org/news/futures-made-easy-with-scala-da1beb3bb281/" target="_blank" rel="noopener">Futures Made Easy with Scala</a></p>
+<h1 id="本文代码"><a href="#本文代码" class="headerlink" title="本文代码"></a>本文代码</h1><p><a href="https://github.com/Liam8/learn-scala" target="_blank" rel="noopener">Github仓库</a></p>
+<p>转载请注明原文地址：<a href="https://liam-blog.ml/2019/09/22/Scala-Concurrency-Executor/" target="_blank" rel="noopener">https://liam-blog.ml/2019/09/22/Scala-Concurrency-Executor/</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/07/14/Scala-Concurrency-in-Practice-1/" rel="bookmark">Scala并发编程实战 1：Monitor与synchronized</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/07/21/Scala-Concurrency-in-Practice-2/" rel="bookmark">Scala并发编程实战 2：Lock 锁</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/08/26/Scala-Concurrency-Semaphore/" rel="bookmark">Scala并发编程实战 4：Semaphore 信号量模型</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/08/03/Scala-Concurrency-in-Practice-3/" rel="bookmark">Scala并发编程实战 3：Condition 条件变量</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/09/28/scala-implicit/" rel="bookmark">Scala implicit 隐式转换安全驾驶指南</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Scala/" rel="tag"># Scala</a>
+              <a href="/tags/并发/" rel="tag"># 并发</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/08/26/Scala-Concurrency-Semaphore/" rel="prev" title="Scala并发编程实战 4：Semaphore 信号量模型">
+      <i class="fa fa-chevron-left"></i> Scala并发编程实战 4：Semaphore 信号量模型
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/09/28/scala-implicit/" rel="next" title="Scala implicit 隐式转换安全驾驶指南">
+      Scala implicit 隐式转换安全驾驶指南 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Executor"><span class="nav-number">1.</span> <span class="nav-text">Executor</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#ExecutorService"><span class="nav-number">2.</span> <span class="nav-text">ExecutorService</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#ThreadPoolExecutor"><span class="nav-number">3.</span> <span class="nav-text">ThreadPoolExecutor</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Executors"><span class="nav-number">4.</span> <span class="nav-text">Executors</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#ExecutionContext"><span class="nav-number">5.</span> <span class="nav-text">ExecutionContext</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考文献"><span class="nav-number">6.</span> <span class="nav-text">参考文献</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#本文代码"><span class="nav-number">7.</span> <span class="nav-text">本文代码</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/uploads/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">32</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Liam8" title="GitHub → https://github.com/Liam8" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'forest',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '9c60518caffc425c4147',
+      clientSecret: '0c14ba2c826b077b0a921501a3652b7768e1dc3b',
+      repo        : 'gitalk-data',
+      owner       : 'liam8',
+      admin       : ['liam8'],
+      id          : '81af5a18f03e23708db72515bc3f850a',
+        language: '',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</body>
+</html>

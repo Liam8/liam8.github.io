@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"liam8.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Maven的所有实际操作都是由插件完成的，如果没有插件，Maven什么都不会干。（即时你没有在POM中配置&amp;lt;plugin&amp;gt;元素，Super POM中也已经帮你引入了若干核心插件） 那么问题来了，项目构建过程中，Maven是怎么知道应该在什么时候调用哪个插件的呢？ 插件的调用时机，跟’生命周期’和’插件目标’有很大关系。">
+<meta name="keywords" content="Maven">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Maven用户都应该知道的一些事：构建生命周期和插件">
+<meta property="og:url" content="https://liam8.github.io/2019/06/16/maven-lifecycle-and-plugin-goal/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="Maven的所有实际操作都是由插件完成的，如果没有插件，Maven什么都不会干。（即时你没有在POM中配置&amp;lt;plugin&amp;gt;元素，Super POM中也已经帮你引入了若干核心插件） 那么问题来了，项目构建过程中，Maven是怎么知道应该在什么时候调用哪个插件的呢？ 插件的调用时机，跟’生命周期’和’插件目标’有很大关系。">
+<meta property="og:locale" content="en-US">
+<meta property="og:updated_time" content="2020-04-25T08:41:51.474Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Maven用户都应该知道的一些事：构建生命周期和插件">
+<meta name="twitter:description" content="Maven的所有实际操作都是由插件完成的，如果没有插件，Maven什么都不会干。（即时你没有在POM中配置&amp;lt;plugin&amp;gt;元素，Super POM中也已经帮你引入了若干核心插件） 那么问题来了，项目构建过程中，Maven是怎么知道应该在什么时候调用哪个插件的呢？ 插件的调用时机，跟’生命周期’和’插件目标’有很大关系。">
+
+<link rel="canonical" href="https://liam8.github.io/2019/06/16/maven-lifecycle-and-plugin-goal/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en-US'
+  };
+</script>
+
+  <title>Maven用户都应该知道的一些事：构建生命周期和插件 | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130013820-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-130013820-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?784a187bcdc24e0cc9d3c3d2284e2f3b";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Liam's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hello 2020 ！</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-spark">
+
+    <a href="/tags/Spark/" rel="section"><i class="fa fa-fw fa-star"></i>Spark</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/liam8" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en-US">
+    <link itemprop="mainEntityOfPage" href="https://liam8.github.io/2019/06/16/maven-lifecycle-and-plugin-goal/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Maven用户都应该知道的一些事：构建生命周期和插件
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-06-16 17:11:31" itemprop="dateCreated datePublished" datetime="2019-06-16T17:11:31+08:00">2019-06-16</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-04-25 16:41:51" itemprop="dateModified" datetime="2020-04-25T16:41:51+08:00">2020-04-25</time>
+              </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><strong>Maven的所有实际操作都是由插件完成的，如果没有插件，Maven什么都不会干。</strong><br>（即时你没有在POM中配置<code>&lt;plugin&gt;</code>元素，Super POM中也已经帮你引入了若干核心插件）</p>
+<p>那么问题来了，项目构建过程中，Maven是怎么知道应该在什么时候调用哪个插件的呢？</p>
+<p>插件的调用时机，跟’生命周期’和’插件目标’有很大关系。<br><a id="more"></a></p>
+<h1 id="插件目标-Plugin-Goal-是个什么鬼"><a href="#插件目标-Plugin-Goal-是个什么鬼" class="headerlink" title="插件目标(Plugin Goal)是个什么鬼"></a>插件目标(Plugin Goal)是个什么鬼</h1><p>首先需要知道的是，Maven的所有具体任务都是交由插件实现的，而一个插件往往能实现若干个任务或功能。又或者可以说一个插件能实现若干个目标，比如编译源码、执行测试用例、打包项目等等。<br>简单来说，在Maven中Plugin Goal可以看做是插件的一个功能。</p>
+<p>Plugin Goal通常用‘插件前缀:插件目标‘的格式描述，常见的有：<code>compiler:compile</code>,<code>surefire:test</code>,<code>dependency:tree</code>等。</p>
+<p>所谓插件前缀就是插件的名称的一个简写，比如compiler指的就是maven-complier-plugin这个插件。<br><code>compiler:compile</code>的意思既是maven-complier-plugin插件的compile目标。</p>
+<h1 id="构建生命周期-Build-Lifecycle-又是什么"><a href="#构建生命周期-Build-Lifecycle-又是什么" class="headerlink" title="构建生命周期(Build Lifecycle)又是什么"></a>构建生命周期(Build Lifecycle)又是什么</h1><p>构建生命周期是对构建过程的抽象和统一，包括了几乎所有的构建步骤，如清理、初始化、编译、测试、打包等等。</p>
+<p>Maven为不用的目的定义了3套相互独立的生命周期：</p>
+<ul>
+<li>clean 用于清理项目</li>
+<li>default 用于构建项目</li>
+<li>site 用于构建项目站点</li>
+</ul>
+<p>每种生命周期都是由若干阶段(phase)组成，如clean生命周期由pre-clean,clean,post-clean三个阶段组成。</p>
+<p>阶段之间是有序的，而且后面的阶段依赖前面的阶段。<br>用户执行<code>mvn clean</code>时，实际上maven会先执行pre-clean阶段，然后再执行clean阶段；执行<code>mvn post-clean</code>时，则会依次执行pre-clean,clean,post-clean三个阶段。</p>
+<p>3个生命周期各自的阶段如下：</p>
+<h3 id="Clean-Lifecycle"><a href="#Clean-Lifecycle" class="headerlink" title="Clean Lifecycle"></a>Clean Lifecycle</h3><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pre-clean</td>
+<td>execute processes needed prior to the actual project cleaning</td>
+</tr>
+<tr>
+<td>clean</td>
+<td>remove all files generated by the previous build</td>
+</tr>
+<tr>
+<td>post-clean</td>
+<td>execute processes needed to finalize the project cleaning</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="Default-Lifecycle"><a href="#Default-Lifecycle" class="headerlink" title="Default Lifecycle"></a>Default Lifecycle</h3><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>validate</td>
+<td>validate the project is correct and all necessary information is available.</td>
+</tr>
+<tr>
+<td>initialize</td>
+<td>initialize build state, e.g. set properties or create directories.</td>
+</tr>
+<tr>
+<td>generate-sources</td>
+<td>generate any source code for inclusion in compilation.</td>
+</tr>
+<tr>
+<td>process-sources</td>
+<td>process the source code, for example to filter any values.</td>
+</tr>
+<tr>
+<td>generate-resources</td>
+<td>generate resources for inclusion in the package.</td>
+</tr>
+<tr>
+<td>process-resources</td>
+<td>copy and process the resources into the destination directory, ready for packaging.</td>
+</tr>
+<tr>
+<td>compile</td>
+<td>compile the source code of the project.</td>
+</tr>
+<tr>
+<td>process-classes</td>
+<td>post-process the generated files from compilation, for example to do bytecode enhancement on Java classes.</td>
+</tr>
+<tr>
+<td>generate-test-sources</td>
+<td>generate any test source code for inclusion in compilation.</td>
+</tr>
+<tr>
+<td>process-test-sources</td>
+<td>process the test source code, for example to filter any values.</td>
+</tr>
+<tr>
+<td>generate-test-resources</td>
+<td>create resources for testing.</td>
+</tr>
+<tr>
+<td>process-test-resources</td>
+<td>copy and process the resources into the test destination directory.</td>
+</tr>
+<tr>
+<td>test-compile</td>
+<td>compile the test source code into the test destination directory</td>
+</tr>
+<tr>
+<td>process-test-classes</td>
+<td>post-process the generated files from test compilation, for example to do bytecode enhancement on Java classes. For Maven 2.0.5 and above.</td>
+</tr>
+<tr>
+<td>test</td>
+<td>run tests using a suitable unit testing framework. These tests should not require the code be packaged or deployed.</td>
+</tr>
+<tr>
+<td>prepare-package</td>
+<td>perform any operations necessary to prepare a package before the actual packaging. This often results in an unpacked, processed version of the package. (Maven 2.1 and above)</td>
+</tr>
+<tr>
+<td>package</td>
+<td>take the compiled code and package it in its distributable format, such as a JAR.</td>
+</tr>
+<tr>
+<td>pre-integration-test</td>
+<td>perform actions required before integration tests are executed. This may involve things such as setting up the required environment.</td>
+</tr>
+<tr>
+<td>integration-test</td>
+<td>process and deploy the package if necessary into an environment where integration tests can be run.</td>
+</tr>
+<tr>
+<td>post-integration-test</td>
+<td>perform actions required after integration tests have been executed. This may including cleaning up the environment.</td>
+</tr>
+<tr>
+<td>verify</td>
+<td>run any checks to verify the package is valid and meets quality criteria.</td>
+</tr>
+<tr>
+<td>install</td>
+<td>install the package into the local repository, for use as a dependency in other projects locally.</td>
+</tr>
+<tr>
+<td>deploy</td>
+<td>done in an integration or release environment, copies the final package to the remote repository for sharing with other developers and projects.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="Site-Lifecycle"><a href="#Site-Lifecycle" class="headerlink" title="Site Lifecycle"></a>Site Lifecycle</h3><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pre-site</td>
+<td>execute processes needed prior to the actual project site generation</td>
+</tr>
+<tr>
+<td>site</td>
+<td>generate the project’s site documentation</td>
+</tr>
+<tr>
+<td>post-site</td>
+<td>execute processes needed to finalize the site generation, and to prepare for site deployment</td>
+</tr>
+<tr>
+<td>site-deploy</td>
+<td>deploy the generated site documentation to the specified web server</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h1 id="插件目标与生命周期的绑定"><a href="#插件目标与生命周期的绑定" class="headerlink" title="插件目标与生命周期的绑定"></a>插件目标与生命周期的绑定</h1><p><strong>插件目标是与生命周期的某个阶段绑定的</strong>，比如maven-clean-plugin的clean目标与clean阶段绑定，也就意味着当maven执行clean生命周期时，到达clean阶段的时候，会调用maven-clean-plugin的clean目标(删除项目输出目录)。</p>
+<p>也就是说，<strong>插件目标的执行顺序是由其绑定到的生命周期阶段的顺序决定的，如果多个插件目标绑定到同一个阶段，那么先声明的插件会在后声明的插件之前执行。</strong></p>
+<p>对于一些核心插件，Maven已经内置默认将一些插件目标绑定到了生命周期阶段，特别是default生命周期，对于不同的打包类型（jar,war,pom等），Maven提供了不同的默认绑定。如下所示：</p>
+<p><strong>Clean Lifecycle Bindings</strong></p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>plugin:goal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>clean</td>
+<td>clean:clean</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Default Lifecycle Bindings - Packaging ejb / ejb3 / jar / par / rar / war</strong></p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>plugin:goal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>process-resources</td>
+<td>resources:resources</td>
+</tr>
+<tr>
+<td>compile</td>
+<td>compiler:compile</td>
+</tr>
+<tr>
+<td>process-test-resources</td>
+<td>resources:testResources</td>
+</tr>
+<tr>
+<td>test-compile</td>
+<td>compiler:testCompile</td>
+</tr>
+<tr>
+<td>test</td>
+<td>surefire:test</td>
+</tr>
+<tr>
+<td>package</td>
+<td>ejb:ejb  or  ejb3:ejb3  or  jar:jar  or  par:par  or  rar:rar  or  war:war</td>
+</tr>
+<tr>
+<td>install</td>
+<td>install:install</td>
+</tr>
+<tr>
+<td>deploy</td>
+<td>deploy:deploy</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Default Lifecycle Bindings - Packaging ear</strong></p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>plugin:goal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>generate-resources</td>
+<td>ear:generate-application-xml</td>
+</tr>
+<tr>
+<td>process-resources</td>
+<td>resources:resources</td>
+</tr>
+<tr>
+<td>package</td>
+<td>ear:ear</td>
+</tr>
+<tr>
+<td>install</td>
+<td>install:install</td>
+</tr>
+<tr>
+<td>deploy</td>
+<td>deploy:deploy</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Default Lifecycle Bindings - Packaging maven-plugin</strong></p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>plugin:goal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>generate-resources</td>
+<td>plugin:descriptor</td>
+</tr>
+<tr>
+<td>process-resources</td>
+<td>resources:resources</td>
+</tr>
+<tr>
+<td>compile</td>
+<td>compiler:compile</td>
+</tr>
+<tr>
+<td>process-test-resources</td>
+<td>resources:testResources</td>
+</tr>
+<tr>
+<td>test-compile</td>
+<td>compiler:testCompile</td>
+</tr>
+<tr>
+<td>test</td>
+<td>surefire:test</td>
+</tr>
+<tr>
+<td>package</td>
+<td>jar:jar and plugin:addPluginArtifactMetadata</td>
+</tr>
+<tr>
+<td>install</td>
+<td>install:install</td>
+</tr>
+<tr>
+<td>deploy</td>
+<td>deploy:deploy</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Default Lifecycle Bindings - Packaging pom</strong></p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>plugin:goal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>package</td>
+<td></td>
+</tr>
+<tr>
+<td>install</td>
+<td>install:install</td>
+</tr>
+<tr>
+<td>deploy</td>
+<td>deploy:deploy</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Site Lifecycle Bindings</strong></p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>plugin:goal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>site</td>
+<td>site:site</td>
+</tr>
+<tr>
+<td>site-deploy</td>
+<td>site:deploy</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><ul>
+<li><a href="https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html" target="_blank" rel="noopener">Introduction to the Build Lifecycle</a></li>
+<li><a href="https://book.douban.com/subject/5345682/" target="_blank" rel="noopener">《Maven实战》</a></li>
+</ul>
+<p>转载请保留原文地址：<a href="https://liam-blog.ml/2019/06/16/maven-lifecycle-and-plugin-goal/" target="_blank" rel="noopener">Maven用户都应该知道的一些事：构建生命周期和插件</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/06/20/maven-details-about-dependency/" rel="bookmark">Maven用户都应该知道的一些事：关于依赖的常见问题</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Maven/" rel="tag"># Maven</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/02/20/hive-window-sql/" rel="prev" title="Hive窗口函数实战">
+      <i class="fa fa-chevron-left"></i> Hive窗口函数实战
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/06/20/maven-details-about-dependency/" rel="next" title="Maven用户都应该知道的一些事：关于依赖的常见问题">
+      Maven用户都应该知道的一些事：关于依赖的常见问题 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#插件目标-Plugin-Goal-是个什么鬼"><span class="nav-number">1.</span> <span class="nav-text">插件目标(Plugin Goal)是个什么鬼</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#构建生命周期-Build-Lifecycle-又是什么"><span class="nav-number">2.</span> <span class="nav-text">构建生命周期(Build Lifecycle)又是什么</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Clean-Lifecycle"><span class="nav-number">2.0.1.</span> <span class="nav-text">Clean Lifecycle</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Default-Lifecycle"><span class="nav-number">2.0.2.</span> <span class="nav-text">Default Lifecycle</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Site-Lifecycle"><span class="nav-number">2.0.3.</span> <span class="nav-text">Site Lifecycle</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#插件目标与生命周期的绑定"><span class="nav-number">3.</span> <span class="nav-text">插件目标与生命周期的绑定</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考文献"><span class="nav-number">4.</span> <span class="nav-text">参考文献</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/uploads/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">32</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Liam8" title="GitHub → https://github.com/Liam8" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'forest',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '9c60518caffc425c4147',
+      clientSecret: '0c14ba2c826b077b0a921501a3652b7768e1dc3b',
+      repo        : 'gitalk-data',
+      owner       : 'liam8',
+      admin       : ['liam8'],
+      id          : 'd091bde91bac5c87d98e39407b06f575',
+        language: '',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</body>
+</html>

@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"liam8.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="这篇短文将结合实例对隐式转换的各种场景进行解释和总结，希望看完的人能够安全驶过隐式转换这个大坑。">
+<meta name="keywords" content="Scala">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Scala implicit 隐式转换安全驾驶指南">
+<meta property="og:url" content="https://liam8.github.io/2019/09/28/scala-implicit/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="这篇短文将结合实例对隐式转换的各种场景进行解释和总结，希望看完的人能够安全驶过隐式转换这个大坑。">
+<meta property="og:locale" content="en-US">
+<meta property="og:updated_time" content="2020-04-25T08:29:45.814Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Scala implicit 隐式转换安全驾驶指南">
+<meta name="twitter:description" content="这篇短文将结合实例对隐式转换的各种场景进行解释和总结，希望看完的人能够安全驶过隐式转换这个大坑。">
+
+<link rel="canonical" href="https://liam8.github.io/2019/09/28/scala-implicit/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en-US'
+  };
+</script>
+
+  <title>Scala implicit 隐式转换安全驾驶指南 | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130013820-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-130013820-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?784a187bcdc24e0cc9d3c3d2284e2f3b";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Liam's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hello 2020 ！</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-spark">
+
+    <a href="/tags/Spark/" rel="section"><i class="fa fa-fw fa-star"></i>Spark</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/liam8" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en-US">
+    <link itemprop="mainEntityOfPage" href="https://liam8.github.io/2019/09/28/scala-implicit/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Scala implicit 隐式转换安全驾驶指南
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-09-28 22:32:17" itemprop="dateCreated datePublished" datetime="2019-09-28T22:32:17+08:00">2019-09-28</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-04-25 16:29:45" itemprop="dateModified" datetime="2020-04-25T16:29:45+08:00">2020-04-25</time>
+              </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>这篇短文将结合实例对隐式转换的各种场景进行解释和总结，希望看完的人能够安全驶过隐式转换这个大坑。<br><a id="more"></a></p>
+<h1 id="隐式转换函数"><a href="#隐式转换函数" class="headerlink" title="隐式转换函数"></a>隐式转换函数</h1><p>隐式转换函数有两种作用场景。</p>
+<ul>
+<li>1 转换为期望类型：就是指一旦编译器看到X，但需要Y，就会检查从X到Y的隐式转换函数。</li>
+<li>2 转换方法的调用者：简单来说，如obj.f()，如果obj对象没有f方法，则尝试将obj转换为拥有f方法的类型。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">ImpFunction</span> <span class="keyword">extends</span> <span class="title">App</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="class"><span class="keyword">class</span> <span class="title">Dog</span>(<span class="params">val name: <span class="type">String</span></span>) </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">bark</span></span>(): <span class="type">Unit</span> = println(<span class="string">s"<span class="subst">$name</span> say: Wang !"</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">implicit</span> <span class="function"><span class="keyword">def</span> <span class="title">double2int</span></span>(d: <span class="type">Double</span>): <span class="type">Int</span> = d.toInt</span><br><span class="line"></span><br><span class="line">  <span class="keyword">implicit</span> <span class="function"><span class="keyword">def</span> <span class="title">string2Dog</span></span>(s: <span class="type">String</span>): <span class="type">Dog</span> = <span class="keyword">new</span> <span class="type">Dog</span>(s)</span><br><span class="line"></span><br><span class="line">  <span class="keyword">val</span> f: <span class="type">Int</span> = <span class="number">1.1</span> <span class="comment">//转换为期望类型,1.1通过double2int转成了Int类型</span></span><br><span class="line"></span><br><span class="line">  println(f)</span><br><span class="line"></span><br><span class="line">  <span class="string">"Teddy"</span>.bark() <span class="comment">// 转换方法的调用者,字符串通过string2Dog转成了Dog, 于是有了bark方法</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// output</span></span><br><span class="line"><span class="comment">// 1</span></span><br><span class="line"><span class="comment">// Teddy say: Wang !</span></span><br></pre></td></tr></table></figure>
+<p><code>val f: Int = 1.1</code> 因为类型不匹配，这段本来是无法通过编译的，但是编译器发现存在一个Double至Int的隐式转换函数，所以进行了隐式转换。</p>
+<p><code>&quot;Teddy&quot;.bark()</code> String类型本来是没有bark方法的，但是编译器发现了隐式转换string2Dog可以使得String转成一种拥有bark方法的类型，相当于进行了这样的转换：<code>string2Dog(&quot;Teddy&quot;).bark()</code>。</p>
+<h2 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h2><p>需要注意的是，编译器只关心隐式转换函数的输入输出类型，不关心函数名，为避免歧义，同一个作用域中不能有输入输出类型相同的两个隐式转换函数，不然编译器会报错。</p>
+<h1 id="隐式类"><a href="#隐式类" class="headerlink" title="隐式类"></a>隐式类</h1><p>Scala 2.10引入了一种叫做隐式类的新特性。隐式类指的是用implicit关键字修饰的类。使用情况与隐式转换函数类似，<strong>可以看做将类的构造函数定义为隐式转换函数</strong>，返回类型就是这个类。</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> io.github.liam8.impl</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">ImpClass</span> <span class="keyword">extends</span> <span class="title">App</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">implicit</span> <span class="class"><span class="keyword">class</span> <span class="title">Dog</span>(<span class="params">val name: <span class="type">String</span></span>) </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">bark</span></span>(): <span class="type">Unit</span> = println(<span class="string">s"<span class="subst">$name</span> say: Wang !"</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="string">"Teddy"</span>.bark()</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="注意事项-1"><a href="#注意事项-1" class="headerlink" title="注意事项"></a>注意事项</h2><p><em>这段来自官网<a href="https://docs.scala-lang.org/zh-cn/overviews/core/implicit-classes.html" target="_blank" rel="noopener">IMPLICIT CLASSES</a></em><br>隐式类有以下限制条件：</p>
+<ul>
+<li><p>1 只能在别的trait/类/对象内部定义。</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">Helpers</span> </span>&#123;</span><br><span class="line">   <span class="keyword">implicit</span> <span class="class"><span class="keyword">class</span> <span class="title">RichInt</span>(<span class="params">x: <span class="type">Int</span></span>) <span class="title">//</span> <span class="title">正确！</span></span></span><br><span class="line"><span class="class">&#125;</span></span><br><span class="line"><span class="class"><span class="title">implicit</span> <span class="title">class</span> <span class="title">RichDouble</span>(<span class="params">x: <span class="type">Double</span></span>) <span class="title">//</span> <span class="title">错误！</span></span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>2 构造函数只能携带一个非隐式参数。</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="keyword">implicit</span> <span class="class"><span class="keyword">class</span> <span class="title">RichDate</span>(<span class="params">date: java.util.<span class="type">Date</span></span>) <span class="title">//</span> <span class="title">正确！</span></span></span><br><span class="line"><span class="class"><span class="title">implicit</span> <span class="title">class</span> <span class="title">Indexer</span>[<span class="type">T</span>](<span class="params">collecton: <span class="type">Seq</span>[<span class="type">T</span>], index: <span class="type">Int</span></span>) <span class="title">//</span> <span class="title">错误！</span></span></span><br><span class="line"><span class="class"><span class="title">implicit</span> <span class="title">class</span> <span class="title">Indexer</span>[<span class="type">T</span>](<span class="params">collecton: <span class="type">Seq</span>[<span class="type">T</span>]</span>)(<span class="params">implicit index: <span class="type">Index</span></span>) <span class="title">//</span> <span class="title">正确！</span></span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>虽然我们可以创建带有多个非隐式参数的隐式类，但这些类无法用于隐式转换。</p>
+<ul>
+<li>3 在同一作用域内，不能有任何方法、成员或对象与隐式类同名。<br>注意：这意味着隐式类不能是case class。<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">Bar</span></span></span><br><span class="line"><span class="class"><span class="title">implicit</span> <span class="title">class</span> <span class="title">Bar</span>(<span class="params">x: <span class="type">Int</span></span>) <span class="title">//</span> <span class="title">错误！</span></span></span><br><span class="line"><span class="class"></span></span><br><span class="line"><span class="class"><span class="title">val</span> <span class="title">x</span> </span>= <span class="number">5</span></span><br><span class="line"><span class="keyword">implicit</span> <span class="class"><span class="keyword">class</span> <span class="title">x</span>(<span class="params">y: <span class="type">Int</span></span>) <span class="title">//</span> <span class="title">错误！</span></span></span><br><span class="line"><span class="class"></span></span><br><span class="line"><span class="class"><span class="title">implicit</span> <span class="title">case</span> <span class="title">class</span> <span class="title">Baz</span>(<span class="params">x: <span class="type">Int</span></span>) <span class="title">//</span> <span class="title">错误！</span></span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h1 id="隐式参数-amp-隐式值"><a href="#隐式参数-amp-隐式值" class="headerlink" title="隐式参数 &amp; 隐式值"></a>隐式参数 &amp; 隐式值</h1><figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> io.github.liam8.impl</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">ImpParam</span> <span class="keyword">extends</span> <span class="title">App</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">bark</span></span>(<span class="keyword">implicit</span> name: <span class="type">String</span>): <span class="type">Unit</span> = println(<span class="string">s"<span class="subst">$name</span> say: Wang !"</span>)</span><br><span class="line"></span><br><span class="line">  <span class="keyword">implicit</span> <span class="keyword">val</span> t: <span class="type">String</span> = <span class="string">"Hot Dog"</span></span><br><span class="line"></span><br><span class="line">  bark</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>参数加上implicit就成了隐式参数，需要与隐式值(变量定义加上implicit)搭配使用，最后一行的<code>bark</code>缺少了一个String类型的参数，编译器找到了String类型的隐式值，便将其传入，相当于执行了<code>bark(t)</code>。</p>
+<p>implicit关键字会作用于函数列表中的的所有参数，如<code>def test(implicit x:Int, y: Double)</code>这样定义函数，x和y就都成了隐式函数。但是通常我们只希望部分参数为隐式参数，就好比通常会给部分参数提供默认值而不是全部都指定默认值，于是隐式参数常常与柯里化函数一起使用，这样可以使得只有最后一个参数为隐式参数，例如<code>def test(x: Int)(implicit y: Double)</code>。</p>
+<p>👇是完整的例子。</p>
+<figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">ImpParamWithCurry</span> <span class="keyword">extends</span> <span class="title">App</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">bark</span></span>(name: <span class="type">String</span>)(<span class="keyword">implicit</span> word: <span class="type">String</span>): <span class="type">Unit</span> = println(<span class="string">s"<span class="subst">$name</span> say: <span class="subst">$word</span> !"</span>)</span><br><span class="line"></span><br><span class="line">  <span class="keyword">implicit</span> <span class="keyword">val</span> w: <span class="type">String</span> = <span class="string">"Wang"</span></span><br><span class="line"></span><br><span class="line">  bark(<span class="string">"Hot Dog"</span>)</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="注意事项-2"><a href="#注意事项-2" class="headerlink" title="注意事项"></a>注意事项</h2><p><em>下面这段来自<a href="https://blog.csdn.net/m0_37138008/article/details/78120210" target="_blank" rel="noopener">scala的隐式转换学习总结（详细）</a></em></p>
+<ul>
+<li>1）当函数没有柯里化时，implicit关键字会作用于函数列表中的的所有参数。</li>
+<li>2）隐式参数使用时要么全部不指定，要么全不指定，不能只指定部分。</li>
+<li>3）同类型的隐式值只能在作用域内出现一次，即不能在同一个作用域中定义多个相同类型的隐式值。</li>
+<li>4）在指定隐式参数时，implicit 关键字只能出现在参数开头。</li>
+<li>5）如果想要实现参数的部分隐式参数，只能使用函数的柯里化，<pre><code>    如要实现这种形式的函数，def test(x:Int, implicit  y: Double)的形式，必须使用柯里化实现：def test(x: Int)(implicit y: Double).
+</code></pre></li>
+<li>6）柯里化的函数， implicit 关键字只能作用于最后一个参数。否则，不合法。</li>
+<li>7）implicit 关键字在隐式参数中只能出现一次，柯里化的函数也不例外！</li>
+</ul>
+<h1 id="隐式对象"><a href="#隐式对象" class="headerlink" title="隐式对象"></a>隐式对象</h1><p>类似于隐式值, 要结合隐式参数使用。先看一个栗子(下面的代码需要认真体会)。<br><figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> io.github.liam8.impl</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">ImpObject</span> <span class="keyword">extends</span> <span class="title">App</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//定义一个`排序器`接口，能够比较两个相同类型的值的大小</span></span><br><span class="line">  <span class="class"><span class="keyword">trait</span> <span class="title">Ordering</span>[<span class="type">T</span>] </span>&#123;</span><br><span class="line">    <span class="comment">//如果x&lt;y返回-1，x&gt;y返回1，x==y则返回0.</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">compare</span></span>(x: <span class="type">T</span>, y: <span class="type">T</span>): <span class="type">Int</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//实现一个Int类型的排序器</span></span><br><span class="line">  <span class="keyword">implicit</span> <span class="class"><span class="keyword">object</span> <span class="title">IntOrdering</span> <span class="keyword">extends</span> <span class="title">Ordering</span>[<span class="type">Int</span>] </span>&#123;</span><br><span class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">compare</span></span>(x: <span class="type">Int</span>, y: <span class="type">Int</span>): <span class="type">Int</span> = &#123;</span><br><span class="line">      <span class="keyword">if</span> (x &lt; y) <span class="number">-1</span></span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span> (x == y) <span class="number">0</span></span><br><span class="line">      <span class="keyword">else</span> <span class="number">1</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//实现一个String类型的排序器</span></span><br><span class="line">  <span class="keyword">implicit</span> <span class="class"><span class="keyword">object</span> <span class="title">StringOrdering</span> <span class="keyword">extends</span> <span class="title">Ordering</span>[<span class="type">String</span>] </span>&#123;</span><br><span class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">compare</span></span>(x: <span class="type">String</span>, y: <span class="type">String</span>): <span class="type">Int</span> = x.compareTo(y)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//一个通用的max函数</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">max</span></span>[<span class="type">T</span>](x: <span class="type">T</span>, y: <span class="type">T</span>)(<span class="keyword">implicit</span> ord: <span class="type">Ordering</span>[<span class="type">T</span>]): <span class="type">T</span> = &#123;</span><br><span class="line">      <span class="keyword">if</span> (ord.compare(x, y) &gt;= <span class="number">0</span>) x <span class="keyword">else</span> y</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  println(max(<span class="number">1</span>, <span class="number">2</span>))</span><br><span class="line">  println(max(<span class="string">"a"</span>, <span class="string">"b"</span>))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//output: </span></span><br><span class="line"><span class="comment">// 2</span></span><br><span class="line"><span class="comment">// b</span></span><br></pre></td></tr></table></figure></p>
+<p>max函数的作用显然是返回x和y中的最大值，但是x和y的值类型不是固定的，max不知道如何比较x和y的大型，于是定义了一个隐式参数<code>implicit ord: Ordering[T]</code>，希望能传入一个Ordering[T]类型的排序器帮助进行x和y的比较。</p>
+<p>在调用<code>max(1, 2)</code>的时候，编译器发现需要一个Ordering[Int]类型的参数，刚好<code>implicit object IntOrdering</code>定义了一个隐式对象符合要求，于是被用来传入max函数。</p>
+<p>隐式对象跟上面的隐式值非常相似，只是类型特殊而已。</p>
+<p>在Scala中scala.math.Ordering很常用的内置特质，如果你理解了这段代码，也就大致理解了Ordering的原理。</p>
+<h1 id="上下文界定-context-bounds"><a href="#上下文界定-context-bounds" class="headerlink" title="上下文界定(context bounds)"></a>上下文界定(context bounds)</h1><p>这是一种隐式参数的语法糖。</p>
+<p>再看上面隐式对象的例子，如果要添加一个min函数，大致就是这样<br><figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">min</span></span>[<span class="type">T</span>](x: <span class="type">T</span>, y: <span class="type">T</span>)(<span class="keyword">implicit</span> ord: <span class="type">Ordering</span>[<span class="type">T</span>]): <span class="type">T</span> = &#123;</span><br><span class="line">  <span class="keyword">if</span> (ord.compare(x, y) &gt;= <span class="number">0</span>) y <span class="keyword">else</span> x</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>但是max和min函数的参数都比较长，于是出现了一种简化的写法<br><figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">min</span></span>[<span class="type">T</span>: <span class="type">Ordering</span>](x: <span class="type">T</span>, y: <span class="type">T</span>): <span class="type">T</span> = &#123;</span><br><span class="line">  <span class="keyword">val</span> ord = implicitly[<span class="type">Ordering</span>[<span class="type">T</span>]]</span><br><span class="line">  <span class="keyword">if</span> (ord.compare(x, y) &gt;= <span class="number">0</span>) y <span class="keyword">else</span> x</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>[T: Ordering]</code>这种语法就叫上下文界定，含义是上下文中必须有一个Ordering[T]类型的隐式值，这个值会被传入min函数。但是由于这个隐式值并没有明确赋值给某个变量，没法直接使用它，所以需要一个implicitly函数把隐式值取出来。</p>
+<p>implicitly函数的定义非常简单，作用就是将T类型的隐含值返回：<br><figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="meta">@inline</span> <span class="function"><span class="keyword">def</span> <span class="title">implicitly</span></span>[<span class="type">T</span>](<span class="keyword">implicit</span> e: <span class="type">T</span>) = e</span><br></pre></td></tr></table></figure></p>
+<h1 id="视界"><a href="#视界" class="headerlink" title="视界"></a>视界</h1><p>这个语法已经被废弃了，但是你还是可能会看到，简单解释下。<br><figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">min</span></span>[<span class="type">T</span> &lt;% <span class="type">Ordered</span>[<span class="type">T</span>]](x: <span class="type">T</span>, y: <span class="type">T</span>): <span class="type">T</span> = &#123;</span><br><span class="line">    <span class="keyword">if</span> (x &gt; y) y <span class="keyword">else</span> x</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>视界的定义<code>T &lt;% Ordered[T]</code>的含义是T可以被隐式转换成Ordered[T]，这也是为什么<code>x &gt; y</code>可以编译通过。</p>
+<p>上面的写法其实等同于下面这样，所以视界的语法不能用了也不要紧。<br><figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">min</span></span>[<span class="type">T</span>](x: <span class="type">T</span>, y: <span class="type">T</span>)(<span class="keyword">implicit</span> c: <span class="type">T</span> =&gt; <span class="type">Ordered</span>[<span class="type">T</span>]): <span class="type">T</span> = &#123;</span><br><span class="line">  <span class="keyword">if</span> (x &gt; y) y <span class="keyword">else</span> x</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="隐式转换机制"><a href="#隐式转换机制" class="headerlink" title="隐式转换机制"></a>隐式转换机制</h1><h2 id="隐式转换通用规则"><a href="#隐式转换通用规则" class="headerlink" title="隐式转换通用规则"></a>隐式转换通用规则</h2><ul>
+<li><p>标记规则：只有标记为implicit的定义才是可用的。</p>
+</li>
+<li><p>作用域规则：插入的隐式转换必须以单一标识符的形式处于作用域中，或与转换的源或目标类型关联在一起。</p>
+</li>
+</ul>
+<p>单一标识符意思是不能插入形式为someVariable.convert(x)的转换，只能是convert(x)。<br>单一标识符规则有个例外，编译器还将在源类型或转换的期望目标类型的伴生对象中寻找隐式定义。</p>
+<p>有点难理解?看个例子!<br><figure class="highlight scala"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> io.github.liam8.impl</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">ImpCompObject</span> <span class="keyword">extends</span> <span class="title">App</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="class"><span class="keyword">object</span> <span class="title">Dog</span> </span>&#123;</span><br><span class="line">    <span class="keyword">implicit</span> <span class="function"><span class="keyword">def</span> <span class="title">dogToCat</span></span>(d: <span class="type">Dog</span>) = <span class="keyword">new</span> <span class="type">Cat</span>(d.name)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="class"><span class="keyword">class</span> <span class="title">Cat</span>(<span class="params">val name: <span class="type">String</span></span>) </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">miao</span></span>(): <span class="type">Unit</span> = println(<span class="string">s"<span class="subst">$name</span> say: Miao !"</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="class"><span class="keyword">class</span> <span class="title">Dog</span>(<span class="params">val name: <span class="type">String</span></span>) </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">bark</span></span>(): <span class="type">Unit</span> = println(<span class="string">s"<span class="subst">$name</span> say: Wang !"</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">new</span> <span class="type">Dog</span>(<span class="string">"Teddy"</span>).miao()</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//Teddy say: Miao !</span></span><br></pre></td></tr></table></figure></p>
+<p>当前作用域中没有定义和引入隐式函数，但是在Dog的伴生对象中找到了，所以Dog可以被转成Cat，这个跟上下文没有关系，而是Dog自带技能。</p>
+<ul>
+<li><p>无歧义规则：隐式转换唯有不存在其他转换的前提下有效。</p>
+</li>
+<li><p>单一调用规则：只会尝试一个隐式操作。</p>
+</li>
+<li><p>显示操作先行规则：若编写的代码类型检查无误，则不会尝试隐式操作。</p>
+</li>
+</ul>
+<h2 id="转换时机"><a href="#转换时机" class="headerlink" title="转换时机"></a>转换时机</h2><ul>
+<li>当类型与目标类型不一致时</li>
+<li>当对象调用类中不存在的方法或成员时</li>
+<li>缺少隐式参数时</li>
+</ul>
+<p>也即是能用到隐式操作的有三个地方：转换为期望类型、指定（方法）调用者的转换、隐式参数。</p>
+<h2 id="转换机制"><a href="#转换机制" class="headerlink" title="转换机制"></a>转换机制</h2><p><em>这段来自<a href="https://www.cnblogs.com/MOBIN/p/5351900.html" target="_blank" rel="noopener">深入理解Scala的隐式转换</a></em></p>
+<p>即编译器是如何查找到缺失信息的，解析具有以下两种规则：</p>
+<ul>
+<li><p>1.首先会在当前代码作用域下查找隐式实体（隐式方法  隐式类 隐式对象）</p>
+</li>
+<li><p>2.如果第一条规则查找隐式实体失败，会继续在隐式参数的类型的作用域里查找<br>类型的作用域是指与该类型相关联的全部伴生模块，一个隐式实体的类型T它的查找范围如下：</p>
+<ul>
+<li>1 如果T被定义为T with A with B with C,那么A,B,C都是T的部分，在T的隐式解析过程中，它们的伴生对象都会被搜索</li>
+<li>2 如果T是参数化类型，那么类型参数和与类型参数相关联的部分都算作T的部分，比如List[String]的隐式搜索会搜索List的伴生对象和String的伴生对象</li>
+<li>3  如果T是一个单例类型p.T，即T是属于某个p对象内，那么这个p对象也会被搜索</li>
+<li>4  如果T是个类型注入S#T，那么S和T都会被搜索</li>
+</ul>
+</li>
+</ul>
+<h1 id="上路前的话"><a href="#上路前的话" class="headerlink" title="上路前的话"></a>上路前的话</h1><p>这段话来自《Scala编程》</p>
+<blockquote>
+<p>隐式操作若过于频繁使用，会让代码变得晦涩难懂。因此，在考虑添加新的隐式转换之前，请首先自问是否能够通过其他手段，诸如继承、混入组合或方法重载，达到同样的目的。如果所有这些都不能成功，并且你感觉代码仍有一些繁复和冗余，那么隐式操作或许正好能帮到你。</p>
+</blockquote>
+<p>所以。。。谨慎使用，小心翻车，good luck!</p>
+<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><p><a href="https://docs.scala-lang.org/zh-cn/overviews/core/implicit-classes.html" target="_blank" rel="noopener">IMPLICIT CLASSES</a></p>
+<p><a href="https://blog.csdn.net/m0_37138008/article/details/78120210" target="_blank" rel="noopener">scala的隐式转换学习总结（详细）</a></p>
+<p>《Scala编程》</p>
+<p><a href="https://www.cnblogs.com/MOBIN/p/5351900.html" target="_blank" rel="noopener">深入理解Scala的隐式转换</a></p>
+<h1 id="本文代码"><a href="#本文代码" class="headerlink" title="本文代码"></a>本文代码</h1><p><a href="https://github.com/Liam8/learn-scala" target="_blank" rel="noopener">Github仓库</a></p>
+<p>转载请注明原文地址：<a href="https://liam-blog.ml/2019/09/28/scala-implicit/" target="_blank" rel="noopener">https://liam-blog.ml/2019/09/28/scala-implicit/</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/07/14/Scala-Concurrency-in-Practice-1/" rel="bookmark">Scala并发编程实战 1：Monitor与synchronized</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/07/21/Scala-Concurrency-in-Practice-2/" rel="bookmark">Scala并发编程实战 2：Lock 锁</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/08/26/Scala-Concurrency-Semaphore/" rel="bookmark">Scala并发编程实战 4：Semaphore 信号量模型</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/09/22/Scala-Concurrency-Executor/" rel="bookmark">Scala并发编程实战 5：Executor线程池</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2019/08/03/Scala-Concurrency-in-Practice-3/" rel="bookmark">Scala并发编程实战 3：Condition 条件变量</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Scala/" rel="tag"># Scala</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/09/22/Scala-Concurrency-Executor/" rel="prev" title="Scala并发编程实战 5：Executor线程池">
+      <i class="fa fa-chevron-left"></i> Scala并发编程实战 5：Executor线程池
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/10/23/spark-core-rdd/" rel="next" title="Spark Core解析 1：RDD 弹性分布式数据集">
+      Spark Core解析 1：RDD 弹性分布式数据集 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#隐式转换函数"><span class="nav-number">1.</span> <span class="nav-text">隐式转换函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#注意事项"><span class="nav-number">1.1.</span> <span class="nav-text">注意事项</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#隐式类"><span class="nav-number">2.</span> <span class="nav-text">隐式类</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#注意事项-1"><span class="nav-number">2.1.</span> <span class="nav-text">注意事项</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#隐式参数-amp-隐式值"><span class="nav-number">3.</span> <span class="nav-text">隐式参数 &amp; 隐式值</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#注意事项-2"><span class="nav-number">3.1.</span> <span class="nav-text">注意事项</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#隐式对象"><span class="nav-number">4.</span> <span class="nav-text">隐式对象</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#上下文界定-context-bounds"><span class="nav-number">5.</span> <span class="nav-text">上下文界定(context bounds)</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#视界"><span class="nav-number">6.</span> <span class="nav-text">视界</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#隐式转换机制"><span class="nav-number">7.</span> <span class="nav-text">隐式转换机制</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#隐式转换通用规则"><span class="nav-number">7.1.</span> <span class="nav-text">隐式转换通用规则</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#转换时机"><span class="nav-number">7.2.</span> <span class="nav-text">转换时机</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#转换机制"><span class="nav-number">7.3.</span> <span class="nav-text">转换机制</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#上路前的话"><span class="nav-number">8.</span> <span class="nav-text">上路前的话</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考文献"><span class="nav-number">9.</span> <span class="nav-text">参考文献</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#本文代码"><span class="nav-number">10.</span> <span class="nav-text">本文代码</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/uploads/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">32</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Liam8" title="GitHub → https://github.com/Liam8" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'forest',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '9c60518caffc425c4147',
+      clientSecret: '0c14ba2c826b077b0a921501a3652b7768e1dc3b',
+      repo        : 'gitalk-data',
+      owner       : 'liam8',
+      admin       : ['liam8'],
+      id          : '459f3c21a2bd1521c198d648dbf204ef',
+        language: '',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</body>
+</html>
