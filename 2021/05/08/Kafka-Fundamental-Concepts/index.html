@@ -20,15 +20,23 @@
     var CONFIG = {"hostname":"liam8.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Liam&#39;s Blog">
-<meta property="og:url" content="https://liam8.github.io/tags/Apache-Parquet/index.html">
+  <meta name="description" content="What is Kafka? Apache Kafka is an event streaming platform used to collect, process, store, and integrate data at scale. It has numerous use cases including distributed logging, stream processing, dat">
+<meta name="keywords" content="Kafka">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kafka Fundamental Concepts">
+<meta property="og:url" content="https://liam8.github.io/2021/05/08/Kafka-Fundamental-Concepts/index.html">
 <meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="What is Kafka? Apache Kafka is an event streaming platform used to collect, process, store, and integrate data at scale. It has numerous use cases including distributed logging, stream processing, dat">
 <meta property="og:locale" content="en-US">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/1503038310607_9038_1503038310779.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/image-20210505104957944.png">
+<meta property="og:updated_time" content="2021-05-08T09:46:01.201Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Liam&#39;s Blog">
+<meta name="twitter:title" content="Kafka Fundamental Concepts">
+<meta name="twitter:description" content="What is Kafka? Apache Kafka is an event streaming platform used to collect, process, store, and integrate data at scale. It has numerous use cases including distributed logging, stream processing, dat">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/1503038310607_9038_1503038310779.png">
 
-<link rel="canonical" href="https://liam8.github.io/tags/Apache-Parquet/">
+<link rel="canonical" href="https://liam8.github.io/2021/05/08/Kafka-Fundamental-Concepts/">
 
 
 <script id="page-configurations">
@@ -36,12 +44,12 @@
   CONFIG.page = {
     sidebar: "",
     isHome : false,
-    isPost : false,
+    isPost : true,
     lang   : 'en-US'
   };
 </script>
 
-  <title>Tag: Apache Parquet | Liam's Blog</title>
+  <title>Kafka Fundamental Concepts | Liam's Blog</title>
   
     <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130013820-1"></script>
     <script>
@@ -198,57 +206,122 @@
         <div class="content-wrap">
           
 
-          <div class="content tag">
+          <div class="content post posts-expand">
             
 
+    
   
   
-  
-  <div class="post-block">
-    <div class="posts-collapse">
-      <div class="collection-title">
-        <h2 class="collection-header">Apache Parquet
-          <small>Tag</small>
-        </h2>
-      </div>
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en-US">
+    <link itemprop="mainEntityOfPage" href="https://liam8.github.io/2021/05/08/Kafka-Fundamental-Concepts/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Kafka Fundamental Concepts
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2021-05-08 17:16:13 / Modified: 17:46:01" itemprop="dateCreated datePublished" datetime="2021-05-08T17:16:13+08:00">2021-05-08</time>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
 
       
-    <div class="collection-year">
-      <span class="collection-header">2020</span>
+        <h1 id="What-is-Kafka"><a href="#What-is-Kafka" class="headerlink" title="What is Kafka?"></a>What is Kafka?</h1><blockquote>
+<p><a href="https://www.confluent.io/what-is-apache-kafka/" target="_blank" rel="noopener">Apache Kafka</a> is an event streaming platform used to collect, process, store, and integrate data at scale. It has numerous use cases including distributed logging, stream processing, data integration, and pub/sub messaging.</p>
+</blockquote>
+<a id="more"></a>
+<h1 id="Kafka-Architecture-Fundamental-Concepts"><a href="#Kafka-Architecture-Fundamental-Concepts" class="headerlink" title="Kafka Architecture - Fundamental Concepts"></a>Kafka Architecture - Fundamental Concepts</h1><p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/1503038310607_9038_1503038310779.png" alt="1503038310607_9038_1503038310779"></p>
+<ul>
+<li>Topic: Use different topics to hold different kinds of events.Here we have only one topic named TopicA.</li>
+<li>Partitioning / Topic-Partition: Partitioning takes the single topic log and breaks it into multiple logs, each of which can live on a separate node in the Kafka cluster. This way, the work of storing messages, writing new messages, and processing existing messages can be split among many nodes in the cluster.</li>
+<li>Broker: Kafka is composed of a network of machines called brokers.</li>
+<li>Producer and Consumer: These are client applications that contain your code, putting messages into topics and reading messages from topics. </li>
+<li>Zookeeper: A external service to store metadata of Kafka.</li>
+<li>Consumer Group: We can put consumers in a group to avoid that different consumers get same message.</li>
+<li>Replication, leader and follower:  We need to copy partition data to several other brokers to keep it safe. Those copies are called <strong>follower</strong> replicas, whereas the main partition is called the <strong>leader</strong> replica. When you produce data to the leader—in general, reading and writing are done to the leader—the leader and the followers work together to replicate those new writes to the followers.</li>
+</ul>
+<h1 id="More-about-leader-and-follower"><a href="#More-about-leader-and-follower" class="headerlink" title="More about leader and follower"></a>More about leader and follower</h1><p>Let’s look into only one partition.</p>
+<p>All replicas, including leader and followers, are called <strong>AR</strong> (Assigned Replicas). After leader received some messages, followers will pull these messages from leader, usually followers can sync up the messages quickly, these replicas are called <strong>ISR</strong> (In-Sync Replicas). If the replica lag too much, it’s going to be <strong>OSR</strong> (Out-of-Sync Replicas). Definitely, the number of AR equal to ISR + OSR.</p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/image-20210505104957944.png" alt="image-20210505104957944"></p>
+<p>In each partition, Kafka use offset to locate messages, just like the index of array.</p>
+<p><strong>LEO</strong> is short for Log End Offset, it means the next offset to append new message. In the  picture, the leader has received 5 messages, so the LEO is 5. The LEO of follower1 is 5 as well. However, the follower2 haven’t caught up the latest message, so its LEO is 4.</p>
+<p>In this case, the consumers can only get messages from 0th to 3rd for the time being. Kafka only allow consumers get messages which have been saved by all ISRs. In order to indicate the range of messages which can be consumed, Kafka introduced <strong>HW</strong>( High Watermark).It should be 4 here, like the LEO using the next offset of latest message.</p>
+<p>To show the details of partitions, you can use the command below.</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span>KAFKA_HOME/bin/kafka-topics.sh --describe --topic test --bootstrap-server &lt;your brokers&gt;</span><br><span class="line">Topic: test	PartitionCount: 4	ReplicationFactor: 3	Configs: segment.bytes=1073741824</span><br><span class="line">	Topic: test	Partition: 0	Leader: 1005	Replicas: 1005,1004,1006	Isr: 1005,1004,1006</span><br><span class="line">	Topic: test	Partition: 1	Leader: 1006	Replicas: 1006,1005,1004	Isr: 1006,1005,1004</span><br><span class="line">	Topic: test	Partition: 2	Leader: 1004	Replicas: 1004,1006,1005	Isr: 1004,1006,1005</span><br><span class="line">	Topic: test	Partition: 3	Leader: 1005	Replicas: 1005,1006,1004	Isr: 1005,1006,1004</span><br></pre></td></tr></table></figure>
     </div>
 
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/2017/03/02/kafka-operation-command/" rel="bookmark">Kafka 0.10 常用运维命令</a></div>
+    </li>
+  </ul>
 
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2020-05-31T12:25:42+08:00"
-              content="2020-05-31">
-          05-31
-        </time>
-      </div>
 
-      <div class="post-title">
-          <a class="post-title-link" href="/2020/05/31/details-you-need-to-know-about-Apache-Parquet/" itemprop="url">
-            <span itemprop="name">Details you need to know about Apache Parquet</span>
-          </a>
-      </div>
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Kafka/" rel="tag"># Kafka</a>
+          </div>
 
-    </header>
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/05/31/details-you-need-to-know-about-Apache-Parquet/" rel="prev" title="Details you need to know about Apache Parquet">
+      <i class="fa fa-chevron-left"></i> Details you need to know about Apache Parquet
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
   </article>
-
-    </div>
-  </div>
   
   
-  
-
   
 
 
 
           </div>
           
+    <div class="comments" id="gitalk-container"></div>
 
 <script>
   window.addEventListener('tabs:register', () => {
@@ -295,6 +368,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#What-is-Kafka"><span class="nav-number">1.</span> <span class="nav-text">What is Kafka?</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Kafka-Architecture-Fundamental-Concepts"><span class="nav-number">2.</span> <span class="nav-text">Kafka Architecture - Fundamental Concepts</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#More-about-leader-and-follower"><span class="nav-number">3.</span> <span class="nav-text">More about leader and follower</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -429,15 +503,34 @@ if (document.querySelectorAll('pre.mermaid').length) {
     });
   }, window.mermaid);
 }
+</script>
+
+
+  
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '9c60518caffc425c4147',
+      clientSecret: '0c14ba2c826b077b0a921501a3652b7768e1dc3b',
+      repo        : 'gitalk-data',
+      owner       : 'liam8',
+      admin       : ['liam8'],
+      id          : 'e059a9d7cc4cc940ca5dec50408f533e',
+        language: '',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
 </script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
-
-
-  
-
-  
-
-  
-
 
 </body>
 </html>
