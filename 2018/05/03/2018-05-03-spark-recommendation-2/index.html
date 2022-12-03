@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"liam-blog.ml","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="基于用户的协同过滤基于用户的协同过滤，即User-Based CF (User-Based Collaborative Filtering)，是基于一个这样的假设“跟你爱好相同的人喜欢的物品，你很可能也喜欢”，所以User-Based CF主要的任务就是找出用户的最近邻居，从而根据最近邻居的喜好做出未知项的评分预测。User-Based CF算法可以分为4个步骤：数据表示、最近邻查询、评分预测">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于Spark实现推荐算法-2:基于用户的协同过滤(理论篇)">
+<meta property="og:url" content="https://liam-blog.ml/2018/05/03/2018-05-03-spark-recommendation-2/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="基于用户的协同过滤基于用户的协同过滤，即User-Based CF (User-Based Collaborative Filtering)，是基于一个这样的假设“跟你爱好相同的人喜欢的物品，你很可能也喜欢”，所以User-Based CF主要的任务就是找出用户的最近邻居，从而根据最近邻居的喜好做出未知项的评分预测。User-Based CF算法可以分为4个步骤：数据表示、最近邻查询、评分预测">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2018-05-03T01:02:15.000Z">
+<meta property="article:modified_time" content="2022-12-03T09:20:44.383Z">
+<meta property="article:author" content="Liam">
+<meta property="article:tag" content="Spark">
+<meta property="article:tag" content="algorithm">
+<meta property="article:tag" content="recommendation">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://liam-blog.ml/2018/05/03/2018-05-03-spark-recommendation-2/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://liam-blog.ml/2018/05/03/2018-05-03-spark-recommendation-2/","path":"2018/05/03/2018-05-03-spark-recommendation-2/","title":"基于Spark实现推荐算法-2:基于用户的协同过滤(理论篇)"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>基于Spark实现推荐算法-2:基于用户的协同过滤(理论篇) | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3LJ1Y8TCD3"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-3LJ1Y8TCD3","only_pageview":false}</script>
+  <script src="/js/third-party/analytics/google-analytics.js"></script>
+
+
+
+
+
+
+  <script async defer data-website-id="" src=""></script>
+
+  <script defer data-domain="" src=""></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Liam's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hi there, 2022!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8E%E7%94%A8%E6%88%B7%E7%9A%84%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4"><span class="nav-number">1.</span> <span class="nav-text">基于用户的协同过滤</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%95%B0%E6%8D%AE%E8%A1%A8%E7%A4%BA"><span class="nav-number">1.1.</span> <span class="nav-text">1.数据表示</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%9C%80%E8%BF%91%E9%82%BB%E6%9F%A5%E8%AF%A2"><span class="nav-number">1.2.</span> <span class="nav-text">2.最近邻查询</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%AF%84%E5%88%86%E9%A2%84%E6%B5%8B"><span class="nav-number">1.3.</span> <span class="nav-text">3.评分预测</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E6%8E%A8%E8%8D%90%E7%BB%93%E6%9E%9C%E4%BA%A7%E7%94%9F"><span class="nav-number">1.4.</span> <span class="nav-text">4.推荐结果产生</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/images/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2018/05/03/2018-05-03-spark-recommendation-2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="基于Spark实现推荐算法-2:基于用户的协同过滤(理论篇) | Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          基于Spark实现推荐算法-2:基于用户的协同过滤(理论篇)
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2018-05-03 09:02:15" itemprop="dateCreated datePublished" datetime="2018-05-03T09:02:15+08:00">2018-05-03</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-12-03 17:20:44" itemprop="dateModified" datetime="2022-12-03T17:20:44+08:00">2022-12-03</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <link href="https://cdn.bootcss.com/KaTeX/0.7.1/katex.min.css" rel="stylesheet">
+
+<h1 id="基于用户的协同过滤"><a href="#基于用户的协同过滤" class="headerlink" title="基于用户的协同过滤"></a>基于用户的协同过滤</h1><p>基于用户的协同过滤，即User-Based CF (User-Based Collaborative Filtering)，是基于一个这样的假设“跟你爱好相同的人喜欢的物品，你很可能也喜欢”，所以User-Based CF主要的任务就是找出用户的最近邻居，从而根据最近邻居的喜好做出未知项的评分预测。<br>User-Based CF算法可以分为4个步骤：数据表示、最近邻查询、评分预测、推荐结果产生。</p>
+<span id="more"></span>
+
+<h2 id="1-数据表示"><a href="#1-数据表示" class="headerlink" title="1.数据表示"></a>1.数据表示</h2><p>User-Based CF使用的用户—项目数据可以表示为二维矩阵。以用户对项目的评分数据为例，评分数据可以用如下方法表示，</p>
+<ul>
+<li>用户评分数据表</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Item&#x2F;User</th>
+<th>User 1</th>
+<th>…</th>
+<th>User k</th>
+<th>…</th>
+<th>User n</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Item 1</td>
+<td>R1,1</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>…</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Item j</td>
+<td></td>
+<td></td>
+<td>Rj,k</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>…</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Item m</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>Rm,n</td>
+</tr>
+</tbody></table>
+<p>其中每一行代表物品所获得的评分。以Item j为例，Rj,k代表用户k给物品j的评分，但并不是所有用户都会对Item j进行评分，所以Rj,k可能存在也可能不存在。这里设用户数为n，物品数目为m，可以将数据转换为评分值组成的二维矩阵R，则R是维度为(m×n)的评分矩阵。</p>
+<h2 id="2-最近邻查询"><a href="#2-最近邻查询" class="headerlink" title="2.最近邻查询"></a>2.最近邻查询</h2><p>所谓“最近邻居”是指与当前用户最相似的其他若干用户，为了防止单个用户评分对推荐结果影响过大，导致偏差，通常取N（N为大于1的整数）个相似用户的数据。没有度量就没有比较，所以需要某种方法度量用户间的相似程度，这里相似程度简称为相似度。<br>相似度的计算方法较多，以余弦相似度计算为例说明。余弦相似度(Cosine-based Similarity)是用两个向量间夹角的余弦值来衡量相似性。若要计算用户间的相似度，也就是要计算上一步中矩阵R的列向量间的相似度，取User X和User Y的向量分别为如下公式所示，<br>$$<br>    x ⃗&#x3D;(R_{1,x},…,R_{m,x} )<br>$$<br>$$<br>    y ⃗&#x3D;(R_{1,y},…,R_{m,y} )<br>$$</p>
+<p>那么User X与User Y间的余弦相似度为，<br>$$<br>    sim(X,Y)&#x3D;cos⁡(x ⃗,y ⃗ )&#x3D;\frac{x ⃗∙y ⃗}{‖x ⃗ ‖*‖y ⃗ ‖}<br>$$</p>
+<p>其中$x ⃗∙y ⃗$表示向量间的内积，$‖x ⃗ ‖$是向量 x ⃗$的模，sim(X,Y)就是相似度的值。依次计算当前用户与其他所有用户的相似度，选取相似度最大的前K个用户作为该用户的最近邻居集合。</p>
+<h2 id="3-评分预测"><a href="#3-评分预测" class="headerlink" title="3.评分预测"></a>3.评分预测</h2><p>评分预测的方法也有多种，常用的是加权求和的方法计算预测值。将用户u的最近邻居用户对物品i的打分进行加权求和，权值为各个最近邻居用户与用户u的相似度，然后对加权求和的结果求平均，计算得到用户u对物品i的预测打分，公式如下：</p>
+<p>$$<br>    P_{u,i}&#x3D;\frac{\sum_{n∈N}S_{u,n}*R_{n,i}}<br>                                {\sum_{n∈N}(|S_{u,n}|)}<br>$$</p>
+<p>N代表用户u的最近邻居用户集合，n是属于N中的一个用户， $S_{u,n}$ 表示用户u和用户n的相似度，$R_{n,i}$ 表示用户n对物品i的评分。根据该公式逐个计算出用户u未评分的所有物品的预测评分，得到预测评分集合。</p>
+<h2 id="4-推荐结果产生"><a href="#4-推荐结果产生" class="headerlink" title="4.推荐结果产生"></a>4.推荐结果产生</h2><p>从上一步得到的预测评分集合中，选出评分最高的若干个物品作为推荐物品集，也就是最终的推荐结果。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Spark/" rel="tag"># Spark</a>
+              <a href="/tags/algorithm/" rel="tag"># algorithm</a>
+              <a href="/tags/recommendation/" rel="tag"># recommendation</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2018/05/02/2018-05-01-spark-recommendation-1/" rel="prev" title="基于Spark实现推荐算法-1:推荐算法简介">
+                  <i class="fa fa-chevron-left"></i> 基于Spark实现推荐算法-1:推荐算法简介
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2018/05/04/2018-05-04-spark-recommendation-item-based-cf/" rel="next" title="基于Spark实现推荐算法-4:基于物品的协同过滤(实现篇)">
+                  基于Spark实现推荐算法-4:基于物品的协同过滤(实现篇) <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

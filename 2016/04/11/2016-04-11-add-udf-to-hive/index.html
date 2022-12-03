@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"liam-blog.ml","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="1 编写UDF类以简单的处理单个字段的UDF函数为例,开发自定义UDF函数需要继承’org.apache.hadoop.hive.ql.exec.UDF’类.可以通过Maven添加,pom文件中加入(版本号跟Hive版本一致即可):">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hive添加自定义UDF函数">
+<meta property="og:url" content="https://liam-blog.ml/2016/04/11/2016-04-11-add-udf-to-hive/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="1 编写UDF类以简单的处理单个字段的UDF函数为例,开发自定义UDF函数需要继承’org.apache.hadoop.hive.ql.exec.UDF’类.可以通过Maven添加,pom文件中加入(版本号跟Hive版本一致即可):">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2016-04-10T22:00:00.000Z">
+<meta property="article:modified_time" content="2022-12-03T09:20:44.241Z">
+<meta property="article:author" content="Liam">
+<meta property="article:tag" content="Hive">
+<meta property="article:tag" content="UDF">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://liam-blog.ml/2016/04/11/2016-04-11-add-udf-to-hive/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://liam-blog.ml/2016/04/11/2016-04-11-add-udf-to-hive/","path":"2016/04/11/2016-04-11-add-udf-to-hive/","title":"Hive添加自定义UDF函数"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Hive添加自定义UDF函数 | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3LJ1Y8TCD3"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-3LJ1Y8TCD3","only_pageview":false}</script>
+  <script src="/js/third-party/analytics/google-analytics.js"></script>
+
+
+
+
+
+
+  <script async defer data-website-id="" src=""></script>
+
+  <script defer data-domain="" src=""></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Liam's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hi there, 2022!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-%E7%BC%96%E5%86%99UDF%E7%B1%BB"><span class="nav-number">1.</span> <span class="nav-text">1 编写UDF类</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-%E9%83%A8%E7%BD%B2%E5%8F%8A%E5%88%9B%E5%BB%BAUDF%E5%87%BD%E6%95%B0"><span class="nav-number">2.</span> <span class="nav-text">2 部署及创建UDF函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2jar%E5%8C%85"><span class="nav-number">2.0.1.</span> <span class="nav-text">部署jar包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E6%B0%B8%E4%B9%85%E5%87%BD%E6%95%B0"><span class="nav-number">2.0.2.</span> <span class="nav-text">创建永久函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E4%B8%B4%E6%97%B6%E5%87%BD%E6%95%B0"><span class="nav-number">2.0.3.</span> <span class="nav-text">创建临时函数</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">3.</span> <span class="nav-text">3 参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/images/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2016/04/11/2016-04-11-add-udf-to-hive/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Hive添加自定义UDF函数 | Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Hive添加自定义UDF函数
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2016-04-11 06:00:00" itemprop="dateCreated datePublished" datetime="2016-04-11T06:00:00+08:00">2016-04-11</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-12-03 17:20:44" itemprop="dateModified" datetime="2022-12-03T17:20:44+08:00">2022-12-03</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h1 id="1-编写UDF类"><a href="#1-编写UDF类" class="headerlink" title="1 编写UDF类"></a>1 编写UDF类</h1><p>以简单的处理单个字段的UDF函数为例,开发自定义UDF函数需要继承’org.apache.hadoop.hive.ql.exec.UDF’类.<br>可以通过Maven添加,pom文件中加入(版本号跟Hive版本一致即可):</p>
+<span id="more"></span>
+
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.hive<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>hive-exec<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">version</span>&gt;</span>0.13.1<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>最简单的实现只需继承UDF类,并实现evaluate函数.如下UDF函数用来将IP(v4)地址转换为整数.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> ml.liam8.hive;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.apache.hadoop.hive.ql.exec.Description;</span><br><span class="line"><span class="keyword">import</span> org.apache.hadoop.hive.ql.exec.UDF;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* Convert IPv4 to a num which type is Long in java.</span></span><br><span class="line"><span class="comment">* Created by Liam on 2016/4/11.</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="meta">@Description(name = &quot;IpToNum&quot;, value = &quot;_FUNC_(ip) - Convert IPv4 to a num(long).&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">IpToNum</span> <span class="keyword">extends</span> <span class="title class_">UDF</span> &#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">public</span> <span class="type">long</span> <span class="title function_">evaluate</span><span class="params">(String ip)</span> &#123;</span><br><span class="line">      String[] nums = ip.split(<span class="string">&quot;\\.&quot;</span>);</span><br><span class="line">      <span class="keyword">return</span> Long.parseLong(nums[<span class="number">3</span>]) + Long.parseLong(nums[<span class="number">2</span>]) * <span class="number">256</span></span><br><span class="line">         + Long.parseLong(nums[<span class="number">1</span>]) * <span class="number">65536</span> + Long.parseLong(nums[<span class="number">0</span>]) * <span class="number">16777216</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>evaluate方法的输入输出即是UDF函数的输入输出.<br>Description注解部分提供函数的帮助信息.</p>
+<p>执行:<br><code>desc function test.iptonum</code><br>输出:<br><code>test.iptonum(ip) - Convert IPv4 to a num(long).</code></p>
+<p>源码已上传 <a target="_blank" rel="noopener" href="https://github.com/Liam8/HiveUDF">Github</a></p>
+<h1 id="2-部署及创建UDF函数"><a href="#2-部署及创建UDF函数" class="headerlink" title="2 部署及创建UDF函数"></a>2 部署及创建UDF函数</h1><p>ps:Hive0.13及以后版本适用</p>
+<h3 id="部署jar包"><a href="#部署jar包" class="headerlink" title="部署jar包"></a>部署jar包</h3><p>将jar包复制到HDFS.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hdfs -dfs -put udfs-0.1.jar &#x27;hdfs:///user/hadoop/hiveUDF&#x27;</span><br></pre></td></tr></table></figure>
+<h3 id="创建永久函数"><a href="#创建永久函数" class="headerlink" title="创建永久函数"></a>创建永久函数</h3><p>需在Hive中执行sql语句,格式如下:</p>
+<pre><code>CREATE FUNCTION [db_name.]function_name AS class_name
+  [USING JAR|FILE|ARCHIVE &#39;file_uri&#39; [, JAR|FILE|ARCHIVE &#39;file_uri&#39;] ];
+</code></pre>
+<p>如:</p>
+<pre><code>create function test.iptonum as &#39;com.liam8.hive.IpToNum&#39; using jar &#39;hdfs:///user/hadoop/hiveUDF/udfs-0.1.jar&#39;
+</code></pre>
+<p>函数需要属于某个库,如这里是’test’,当其他库调用时,需要加上库名,如’test.iptonum’.</p>
+<p>调用方式: <code>select test.iptonum(&#39;127.0.0.1&#39;);</code></p>
+<h3 id="创建临时函数"><a href="#创建临时函数" class="headerlink" title="创建临时函数"></a>创建临时函数</h3><p>临时函数只在当前session中有效,临时函数不能指定库.</p>
+<pre><code>create temporary function iptonum as &#39;com.liam8.hive.IpToNum&#39; using jar &#39;hdfs:///user/hadoop/hiveUDF/udfs-0.1.jar&#39;
+</code></pre>
+<p>调用方式: <code>select iptonum(&#39;127.0.0.1&#39;);</code></p>
+<h1 id="3-参考资料"><a href="#3-参考资料" class="headerlink" title="3 参考资料"></a>3 参考资料</h1><p><a target="_blank" rel="noopener" href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DDL#LanguageManualDDL-PermanentFunctions">LanguageManualDDL-PermanentFunctions</a></p>
+<p><a target="_blank" rel="noopener" href="https://cwiki.apache.org/confluence/display/Hive/HivePlugins">HivePlugins</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Hive/" rel="tag"># Hive</a>
+              <a href="/tags/UDF/" rel="tag"># UDF</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2016/03/29/2016-03-29-spark-on-yarn/" rel="prev" title="Spark on YARN 部署">
+                  <i class="fa fa-chevron-left"></i> Spark on YARN 部署
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2016/12/25/2016-12-25-hello-blog/" rel="next" title="Hello World, Hello Blog">
+                  Hello World, Hello Blog <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

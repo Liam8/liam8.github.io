@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"liam-blog.ml","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="算法设计与实现基于物品的协同过滤又称Item-Based CF.基于Spark的Item-Based CF算法其实现原理和步骤与经典方法基本一致，不同的地方主要在于具体步骤内的并行化计算。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于Spark实现推荐算法-4:基于物品的协同过滤(实现篇)">
+<meta property="og:url" content="https://liam-blog.ml/2018/05/04/2018-05-04-spark-recommendation-item-based-cf/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="算法设计与实现基于物品的协同过滤又称Item-Based CF.基于Spark的Item-Based CF算法其实现原理和步骤与经典方法基本一致，不同的地方主要在于具体步骤内的并行化计算。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2018-05-03T22:36:49.000Z">
+<meta property="article:modified_time" content="2022-12-03T09:20:44.397Z">
+<meta property="article:author" content="Liam">
+<meta property="article:tag" content="Spark">
+<meta property="article:tag" content="algorithm">
+<meta property="article:tag" content="recommendation">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://liam-blog.ml/2018/05/04/2018-05-04-spark-recommendation-item-based-cf/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://liam-blog.ml/2018/05/04/2018-05-04-spark-recommendation-item-based-cf/","path":"2018/05/04/2018-05-04-spark-recommendation-item-based-cf/","title":"基于Spark实现推荐算法-4:基于物品的协同过滤(实现篇)"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>基于Spark实现推荐算法-4:基于物品的协同过滤(实现篇) | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3LJ1Y8TCD3"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-3LJ1Y8TCD3","only_pageview":false}</script>
+  <script src="/js/third-party/analytics/google-analytics.js"></script>
+
+
+
+
+
+
+  <script async defer data-website-id="" src=""></script>
+
+  <script defer data-domain="" src=""></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Liam's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hi there, 2022!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%AE%97%E6%B3%95%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0"><span class="nav-number">1.</span> <span class="nav-text">算法设计与实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E4%BC%BC%E5%BA%A6%E7%AE%97%E6%B3%95"><span class="nav-number">1.1.</span> <span class="nav-text">相似度算法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%84%E6%B5%8B%E5%80%BC%E8%AE%A1%E7%AE%97"><span class="nav-number">1.2.</span> <span class="nav-text">预测值计算</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E6%AD%A5%E9%AA%A4%EF%BC%9A"><span class="nav-number">1.3.</span> <span class="nav-text">实现步骤：</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AD%A5%E9%AA%A4%E5%88%86%E8%A7%A3"><span class="nav-number">1.3.1.</span> <span class="nav-text">步骤分解</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8ESpark%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-number">1.3.2.</span> <span class="nav-text">基于Spark的实现</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/images/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2018/05/04/2018-05-04-spark-recommendation-item-based-cf/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="基于Spark实现推荐算法-4:基于物品的协同过滤(实现篇) | Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          基于Spark实现推荐算法-4:基于物品的协同过滤(实现篇)
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2018-05-04 06:36:49" itemprop="dateCreated datePublished" datetime="2018-05-04T06:36:49+08:00">2018-05-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-12-03 17:20:44" itemprop="dateModified" datetime="2022-12-03T17:20:44+08:00">2022-12-03</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h1 id="算法设计与实现"><a href="#算法设计与实现" class="headerlink" title="算法设计与实现"></a>算法设计与实现</h1><p>基于物品的协同过滤又称Item-Based CF.<br>基于Spark的Item-Based CF算法其实现原理和步骤与经典方法基本一致，不同的地方主要在于具体步骤内的并行化计算。</p>
+<span id="more"></span>
+
+<h2 id="相似度算法"><a href="#相似度算法" class="headerlink" title="相似度算法"></a>相似度算法</h2><p>在Spark MLlib中提供了余弦相似度的分布式实现，org.apache.spark.mllib.linalg.distributed包中的IndexedRowMatrix是一个分布式矩阵类，其中提供了一个columnSimilarities方法用于计算该矩阵各列之间的余弦相似度。</p>
+<h2 id="预测值计算"><a href="#预测值计算" class="headerlink" title="预测值计算"></a>预测值计算</h2><p>采用加权求和的方法计算预测值.</p>
+<h2 id="实现步骤："><a href="#实现步骤：" class="headerlink" title="实现步骤："></a>实现步骤：</h2><h3 id="步骤分解"><a href="#步骤分解" class="headerlink" title="步骤分解"></a>步骤分解</h3><p>Step 1：读取用户评分数据，设用户数为U，物品数目为I，将数据转换为以用户为行，物品为列的二维矩阵R，R维度为（U×I）。矩阵的每一个数据表示某个用户对特定物品的评分。</p>
+<p>Step 2：计算R每列之间的相似度，可以得到维度(I×I)的矩阵S。S(i,j)表示物品i和物品j之间的相似度。</p>
+<p>Step 3：使用预测值计算公式计算用户对未评分物品的预测评分。得到预测评分矩阵P，P维度为（U×I），P(i,j) 表示用户i对物品j的预测评分。</p>
+<p>Step 4：对用户i进行推荐。找出P的第i行中评分最高的前K个物品推荐给用户。K是需要推荐的物品数量。</p>
+<h3 id="基于Spark的实现"><a href="#基于Spark的实现" class="headerlink" title="基于Spark的实现"></a>基于Spark的实现</h3><p>鉴于从Spark 2.0.0开始基于Dataset的API成为了主要编程API，本文采用Dataset的API进行实现，使用的语言为Scala。基于Spark平台Item-Based CF可以分为4步实现：</p>
+<p>Step 1：读取评分数据集，这里是从Hive数据仓库读取数据，udata是表名，userId、itemId、rating是3个字段，分别是[用户ID，物品ID，评分]。这里按照8:2的比例将数据集分为训练集和测试集。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//读取评分数据集</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">dataSet</span></span>(): (<span class="type">DataFrame</span>, <span class="type">DataFrame</span>) = &#123;</span><br><span class="line">    <span class="keyword">val</span> table = <span class="string">&quot; udata&quot;</span></span><br><span class="line">    <span class="keyword">val</span> df = spark.sql(<span class="string">s&quot;select userId,itemId,rating from test.<span class="subst">$table</span>&quot;</span>)</span><br><span class="line">    <span class="keyword">val</span> <span class="type">Array</span>(training, test) = df.randomSplit(<span class="type">Array</span>(<span class="number">0.8</span>, <span class="number">0.2</span>))</span><br><span class="line">    training.cache()</span><br><span class="line">    test.cache()</span><br><span class="line">    (training, test)</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>Step 2：将数据集转换成以用户为行、物品为列的二维评分矩阵，矩阵的每一个行是一个用户对所有物品的评分。然后求出评分矩阵每列之间的相似度，得到一个以物品ID为行和列，以相似度为数据的矩阵，这个矩阵就是物品相似度矩阵。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//计算相似度矩阵</span></span><br><span class="line"><span class="comment">//评分数据转换成矩阵</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">parseToMatrix</span></span>(data: <span class="type">DataFrame</span>): <span class="type">CoordinateMatrix</span> = &#123;</span><br><span class="line">    <span class="keyword">val</span> parsedData = data.rdd.map &#123;</span><br><span class="line">      <span class="keyword">case</span> <span class="type">Row</span>(user: <span class="type">Int</span>, item: <span class="type">Int</span>, rate: <span class="type">Int</span>) =&gt;</span><br><span class="line">        <span class="type">MatrixEntry</span>(user, item, rate.toDouble)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">new</span> <span class="type">CoordinateMatrix</span>(parsedData)</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">//计算相似度矩阵</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">standardCosine</span></span>(matrix: <span class="type">CoordinateMatrix</span>): <span class="type">RDD</span>[<span class="type">MatrixEntry</span>] = &#123;</span><br><span class="line">    <span class="keyword">val</span> similarity = matrix.toIndexedRowMatrix().columnSimilarities()</span><br><span class="line">    <span class="keyword">val</span> sim = similarity.entries</span><br><span class="line">    sim</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>Step 3：计算测试集相似物品表。将测试集与训练集、物品相似度表进行左联接，得到测试集相似物品表，字段为[用户ID,物品ID,实际评分,相似物品评分,相似度]。然后将该表注册成临时表testAndSim，并且缓存起来，供下一步使用。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//计算测试集相似物品表</span></span><br><span class="line"><span class="keyword">val</span> testItemSim = spark.sql(</span><br><span class="line">      <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">        |select test.userId,test.itemId,test.rating testRating,training.rating,sim.sim</span></span><br><span class="line"><span class="string">        |from test</span></span><br><span class="line"><span class="string">        | left join training on test.userId=training.userId</span></span><br><span class="line"><span class="string">        | left join itemSim sim on test.itemId=sim.itemX and training.itemId=sim.itemY</span></span><br><span class="line"><span class="string">      &quot;&quot;&quot;</span>.stripMargin</span><br><span class="line">    )</span><br><span class="line">    testItemSim.cache()</span><br><span class="line">    testItemSim.createOrReplaceTempView(<span class="string">&quot;testAndSim&quot;</span>)</span><br></pre></td></tr></table></figure>
+<p>Step 4：预测测试集中用户对物品的评分。对上一步得到的测试集相似物品表testAndSim进行计算，将该表数据按照(userId,itemId)进行分组，取每组相似度前K个物品的评分。最后依照预测值计算公式求出预测值，得到预测评分表testAndPre，其中pre字段就是对应的预测评分值。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//预测评分</span></span><br><span class="line"><span class="keyword">val</span> sqlRank = <span class="string">&quot;select userId,itemId,testRating,rating,sim,&quot;</span> +</span><br><span class="line">        <span class="string">&quot;rank() over (partition by userId,itemId order by sim desc) rank\n&quot;</span> +</span><br><span class="line">        <span class="string">&quot;from testAndSim&quot;</span></span><br><span class="line"><span class="keyword">val</span> testAndPre = spark.sql(</span><br><span class="line">        <span class="string">&quot;select userId,itemId,first(testRating) rate,nvl(sum(rating*sim)/sum(abs(sim)),0) pre\n&quot;</span> +</span><br><span class="line">          <span class="string">&quot;from( &quot;</span> +</span><br><span class="line">          <span class="string">&quot;  select *&quot;</span> +</span><br><span class="line">          <span class="string">&quot;  from  (&quot;</span> + sqlRank + <span class="string">&quot;) t &quot;</span> +</span><br><span class="line">          <span class="string">s&quot; where rank &lt;= <span class="subst">$k</span> &quot;</span> +</span><br><span class="line">          <span class="string">&quot;) w &quot;</span> +</span><br><span class="line">          <span class="string">&quot;group by userId,itemId&quot;</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Spark/" rel="tag"># Spark</a>
+              <a href="/tags/algorithm/" rel="tag"># algorithm</a>
+              <a href="/tags/recommendation/" rel="tag"># recommendation</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2018/05/03/2018-05-03-spark-recommendation-2/" rel="prev" title="基于Spark实现推荐算法-2:基于用户的协同过滤(理论篇)">
+                  <i class="fa fa-chevron-left"></i> 基于Spark实现推荐算法-2:基于用户的协同过滤(理论篇)
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2018/12/25/2018-12-25-spark-work-with-mysql-cn/" rel="next" title="Spark 2.x读写MySQL">
+                  Spark 2.x读写MySQL <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

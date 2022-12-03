@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"liam-blog.ml","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="What is Kafka? Apache Kafka is an event streaming platform used to collect, process, store, and integrate data at scale. It has numerous use cases including distributed logging, stream processing, dat">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kafka Fundamental Concepts">
+<meta property="og:url" content="https://liam-blog.ml/2021/05/08/2021-05-08-Kafka-Fundamental-Concepts/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="What is Kafka? Apache Kafka is an event streaming platform used to collect, process, store, and integrate data at scale. It has numerous use cases including distributed logging, stream processing, dat">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/1503038310607_9038_1503038310779.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/image-20210505104957944.png">
+<meta property="article:published_time" content="2021-05-08T09:16:13.000Z">
+<meta property="article:modified_time" content="2022-12-03T09:20:44.725Z">
+<meta property="article:author" content="Liam">
+<meta property="article:tag" content="Kafka">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/1503038310607_9038_1503038310779.png">
+
+
+<link rel="canonical" href="https://liam-blog.ml/2021/05/08/2021-05-08-Kafka-Fundamental-Concepts/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://liam-blog.ml/2021/05/08/2021-05-08-Kafka-Fundamental-Concepts/","path":"2021/05/08/2021-05-08-Kafka-Fundamental-Concepts/","title":"Kafka Fundamental Concepts"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Kafka Fundamental Concepts | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3LJ1Y8TCD3"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-3LJ1Y8TCD3","only_pageview":false}</script>
+  <script src="/js/third-party/analytics/google-analytics.js"></script>
+
+
+
+
+
+
+  <script async defer data-website-id="" src=""></script>
+
+  <script defer data-domain="" src=""></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Liam's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hi there, 2022!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#What-is-Kafka"><span class="nav-number">1.</span> <span class="nav-text">What is Kafka?</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Kafka-Architecture-Fundamental-Concepts"><span class="nav-number">2.</span> <span class="nav-text">Kafka Architecture - Fundamental Concepts</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#More-about-leader-and-follower"><span class="nav-number">3.</span> <span class="nav-text">More about leader and follower</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/images/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2021/05/08/2021-05-08-Kafka-Fundamental-Concepts/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Kafka Fundamental Concepts | Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Kafka Fundamental Concepts
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2021-05-08 17:16:13" itemprop="dateCreated datePublished" datetime="2021-05-08T17:16:13+08:00">2021-05-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-12-03 17:20:44" itemprop="dateModified" datetime="2022-12-03T17:20:44+08:00">2022-12-03</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h1 id="What-is-Kafka"><a href="#What-is-Kafka" class="headerlink" title="What is Kafka?"></a>What is Kafka?</h1><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.confluent.io/what-is-apache-kafka/">Apache Kafka</a> is an event streaming platform used to collect, process, store, and integrate data at scale. It has numerous use cases including distributed logging, stream processing, data integration, and pub&#x2F;sub messaging.</p>
+</blockquote>
+<span id="more"></span>
+
+<h1 id="Kafka-Architecture-Fundamental-Concepts"><a href="#Kafka-Architecture-Fundamental-Concepts" class="headerlink" title="Kafka Architecture - Fundamental Concepts"></a>Kafka Architecture - Fundamental Concepts</h1><p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/1503038310607_9038_1503038310779.png" alt="1503038310607_9038_1503038310779"></p>
+<ul>
+<li>Topic: Use different topics to hold different kinds of events.Here we have only one topic named TopicA.</li>
+<li>Partitioning &#x2F; Topic-Partition: Partitioning takes the single topic log and breaks it into multiple logs, each of which can live on a separate node in the Kafka cluster. This way, the work of storing messages, writing new messages, and processing existing messages can be split among many nodes in the cluster.</li>
+<li>Broker: Kafka is composed of a network of machines called brokers.</li>
+<li>Producer and Consumer: These are client applications that contain your code, putting messages into topics and reading messages from topics. </li>
+<li>Zookeeper: A external service to store metadata of Kafka.</li>
+<li>Consumer Group: We can put consumers in a group to avoid that different consumers get same message.</li>
+<li>Replication, leader and follower:  We need to copy partition data to several other brokers to keep it safe. Those copies are called <strong>follower</strong> replicas, whereas the main partition is called the <strong>leader</strong> replica. When you produce data to the leader—in general, reading and writing are done to the leader—the leader and the followers work together to replicate those new writes to the followers.</li>
+</ul>
+<h1 id="More-about-leader-and-follower"><a href="#More-about-leader-and-follower" class="headerlink" title="More about leader and follower"></a>More about leader and follower</h1><p>Let’s look into only one partition.</p>
+<p>All replicas, including leader and followers, are called <strong>AR</strong> (Assigned Replicas). After leader received some messages, followers will pull these messages from leader, usually followers can sync up the messages quickly, these replicas are called <strong>ISR</strong> (In-Sync Replicas). If the replica lag too much, it’s going to be <strong>OSR</strong> (Out-of-Sync Replicas). Definitely, the number of AR equal to ISR + OSR.</p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/image-20210505104957944.png" alt="image-20210505104957944"></p>
+<p>In each partition, Kafka use offset to locate messages, just like the index of array.</p>
+<p><strong>LEO</strong> is short for Log End Offset, it means the next offset to append new message. In the  picture, the leader has received 5 messages, so the LEO is 5. The LEO of follower1 is 5 as well. However, the follower2 haven’t caught up the latest message, so its LEO is 4.</p>
+<p>In this case, the consumers can only get messages from 0th to 3rd for the time being. Kafka only allow consumers get messages which have been saved by all ISRs. In order to indicate the range of messages which can be consumed, Kafka introduced <strong>HW</strong>( High Watermark).It should be 4 here, like the LEO using the next offset of latest message.</p>
+<p>To show the details of partitions, you can use the command below.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$KAFKA_HOME/bin/kafka-topics.sh --describe --topic test --bootstrap-server &lt;your brokers&gt;</span><br><span class="line">Topic: test	PartitionCount: 4	ReplicationFactor: 3	Configs: segment.bytes=1073741824</span><br><span class="line">	Topic: test	Partition: 0	Leader: 1005	Replicas: 1005,1004,1006	Isr: 1005,1004,1006</span><br><span class="line">	Topic: test	Partition: 1	Leader: 1006	Replicas: 1006,1005,1004	Isr: 1006,1005,1004</span><br><span class="line">	Topic: test	Partition: 2	Leader: 1004	Replicas: 1004,1006,1005	Isr: 1004,1006,1005</span><br><span class="line">	Topic: test	Partition: 3	Leader: 1005	Replicas: 1005,1006,1004	Isr: 1005,1006,1004</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Kafka/" rel="tag"># Kafka</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/05/31/2020-05-31-details-you-need-to-know-about-Apache-Parquet/" rel="prev" title="Details you need to know about Apache Parquet">
+                  <i class="fa fa-chevron-left"></i> Details you need to know about Apache Parquet
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2021/09/24/2021-09-24-How-to-solve-dependency-conflicts-with-Maven/" rel="next" title="How to solve dependency conflicts with Maven">
+                  How to solve dependency conflicts with Maven <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

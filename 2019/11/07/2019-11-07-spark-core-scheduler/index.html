@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"liam-blog.ml","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="Overview调度系统，是贯穿整个Spark应用的主心骨，从调度系统开始入手了解Spark Core，比较容易理清头绪。 Spark的资源调度采用的是常见的两层调度，底层资源的管理和分配是第一层调度，交给YARN、Mesos或者Spark的Standalone集群处理，Application从第一层调度拿到资源后，还要进行内部的任务和资源调度，将任务和资源进行匹配，这是第二层调度，本文讲的就是这">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark Core解析 2：Scheduler 调度体系">
+<meta property="og:url" content="https://liam-blog.ml/2019/11/07/2019-11-07-spark-core-scheduler/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="Overview调度系统，是贯穿整个Spark应用的主心骨，从调度系统开始入手了解Spark Core，比较容易理清头绪。 Spark的资源调度采用的是常见的两层调度，底层资源的管理和分配是第一层调度，交给YARN、Mesos或者Spark的Standalone集群处理，Application从第一层调度拿到资源后，还要进行内部的任务和资源调度，将任务和资源进行匹配，这是第二层调度，本文讲的就是这">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/20191212230626.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/20191028171155.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/stages-simple.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/stages-join.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/stages-co-join.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/stage-example-3-2.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/rdd%20use%20twice.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/rdd-used-twice.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/20191029095005.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/spark%20task%20scheduler.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/TaskScheduler.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/20191128210416.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/20191128210432.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/ui-fair.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/pools.png">
+<meta property="article:published_time" content="2019-11-07T14:50:27.000Z">
+<meta property="article:modified_time" content="2022-12-03T09:20:44.598Z">
+<meta property="article:author" content="Liam">
+<meta property="article:tag" content="Spark">
+<meta property="article:tag" content="Spark Core">
+<meta property="article:tag" content="Scheduler">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/20191212230626.png">
+
+
+<link rel="canonical" href="https://liam-blog.ml/2019/11/07/2019-11-07-spark-core-scheduler/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://liam-blog.ml/2019/11/07/2019-11-07-spark-core-scheduler/","path":"2019/11/07/2019-11-07-spark-core-scheduler/","title":"Spark Core解析 2：Scheduler 调度体系"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Spark Core解析 2：Scheduler 调度体系 | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3LJ1Y8TCD3"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-3LJ1Y8TCD3","only_pageview":false}</script>
+  <script src="/js/third-party/analytics/google-analytics.js"></script>
+
+
+
+
+
+
+  <script async defer data-website-id="" src=""></script>
+
+  <script defer data-domain="" src=""></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Liam's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hi there, 2022!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Overview"><span class="nav-number">1.</span> <span class="nav-text">Overview</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Stage"><span class="nav-number">1.1.</span> <span class="nav-text">Stage</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#example-1"><span class="nav-number">1.1.1.</span> <span class="nav-text">example 1</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#example-2"><span class="nav-number">1.1.2.</span> <span class="nav-text">example 2</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#example-3"><span class="nav-number">1.1.3.</span> <span class="nav-text">example 3</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8E%A2%E7%B4%A2%EF%BC%9A%E4%B8%80%E4%B8%AARDD%E8%A2%AB%E4%BE%9D%E8%B5%96%E5%A4%9A%E6%AC%A1%EF%BC%8C%E4%BC%9A%E5%A6%82%E4%BD%95"><span class="nav-number">1.1.4.</span> <span class="nav-text">探索：一个RDD被依赖多次，会如何</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B0%8F%E7%BB%93"><span class="nav-number">1.1.5.</span> <span class="nav-text">小结</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Task"><span class="nav-number">1.2.</span> <span class="nav-text">Task</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Job-Submit"><span class="nav-number">2.</span> <span class="nav-text">Job Submit</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Stage-Scheduler-high-level"><span class="nav-number">3.</span> <span class="nav-text">Stage Scheduler(high-level)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#DagScheduler"><span class="nav-number">3.1.</span> <span class="nav-text">DagScheduler</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#DagScheduler%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%A8%A1%E5%BC%8F"><span class="nav-number">3.1.1.</span> <span class="nav-text">DagScheduler的工作模式</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Stage%E8%B0%83%E5%BA%A6%E6%B5%81%E7%A8%8B"><span class="nav-number">3.2.</span> <span class="nav-text">Stage调度流程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Task-Scheduler-low-level"><span class="nav-number">4.</span> <span class="nav-text">Task Scheduler(low-level)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Task%E8%B0%83%E5%BA%A6%E6%B5%81%E7%A8%8B"><span class="nav-number">4.1.</span> <span class="nav-text">Task调度流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B"><span class="nav-number">4.2.</span> <span class="nav-text">工作流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A2%B3%E7%90%86"><span class="nav-number">4.3.</span> <span class="nav-text">梳理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TaskScheduler%E7%9A%84%E8%B0%83%E5%BA%A6%E6%B1%A0"><span class="nav-number">4.4.</span> <span class="nav-text">TaskScheduler的调度池</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Schedulable"><span class="nav-number">4.4.1.</span> <span class="nav-text">Schedulable</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Pools%E5%88%9B%E5%BB%BA%E6%B5%81%E7%A8%8B"><span class="nav-number">4.4.2.</span> <span class="nav-text">Pools创建流程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Task%E5%8A%A0%E5%85%A5pool%E6%B5%81%E7%A8%8B"><span class="nav-number">4.4.3.</span> <span class="nav-text">Task加入pool流程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%B0%83%E5%BA%A6%E6%B1%A0%E7%BB%93%E6%9E%84"><span class="nav-number">4.4.4.</span> <span class="nav-text">调度池结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Fair-Scheduler-pools%E9%85%8D%E7%BD%AE"><span class="nav-number">4.4.5.</span> <span class="nav-text">Fair Scheduler pools配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%B0%83%E5%BA%A6%E7%AE%97%E6%B3%95"><span class="nav-number">4.4.6.</span> <span class="nav-text">调度算法</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Pool%E4%B8%BAFIFO%E6%A8%A1%E5%BC%8F%E4%B8%8B%E7%9A%84%E5%87%A0%E7%A7%8D%E6%83%85%E5%BD%A2"><span class="nav-number">4.4.6.1.</span> <span class="nav-text">Pool为FIFO模式下的几种情形</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Pool%E4%B8%BAFAIR%E6%A8%A1%E5%BC%8F%E4%B8%8B%E7%9A%84%E5%87%A0%E7%A7%8D%E6%83%85%E5%BD%A2"><span class="nav-number">4.4.6.2.</span> <span class="nav-text">Pool为FAIR模式下的几种情形</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BC%80%E5%A7%8B%E4%BD%BF%E7%94%A8FAIR-mode"><span class="nav-number">4.4.7.</span> <span class="nav-text">开始使用FAIR mode</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#FAIR-mode%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">4.4.8.</span> <span class="nav-text">FAIR mode应用场景</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83"><span class="nav-number">5.</span> <span class="nav-text">参考</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/images/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2019/11/07/2019-11-07-spark-core-scheduler/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Spark Core解析 2：Scheduler 调度体系 | Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spark Core解析 2：Scheduler 调度体系
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2019-11-07 22:50:27" itemprop="dateCreated datePublished" datetime="2019-11-07T22:50:27+08:00">2019-11-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-12-03 17:20:44" itemprop="dateModified" datetime="2022-12-03T17:20:44+08:00">2022-12-03</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>调度系统，是贯穿整个Spark应用的主心骨，从调度系统开始入手了解Spark Core，比较容易理清头绪。</p>
+<p>Spark的资源调度采用的是常见的两层调度，底层资源的管理和分配是第一层调度，交给YARN、Mesos或者Spark的Standalone集群处理，Application从第一层调度拿到资源后，还要进行内部的任务和资源调度，将任务和资源进行匹配，这是第二层调度，<strong>本文讲的就是这第二层调度</strong>。</p>
+<p>Spark的调度体系涉及的任务包括3个粒度，分别是Job、Stage、Task。<br>Job代表用户提交的一系列操作的总体，一个具体的计算任务，有明确的输入输出，一个Job由多个Stage组成；<br>一个Stage代表Job计算流程的一个组成部分，一个阶段，包含多个Task；<br>一个Task代表对一个分区的数据进行计算的具体任务。</p>
+<p>层级关系：Job &gt; Stage &gt; Task</p>
+<span id="more"></span>
+
+<p>在<a href="https://liam-blog.ml/2019/10/23/spark-core-rdd/">Spark Core 解析：RDD 弹性分布式数据集</a>中，已经解释了RDD之间的依赖，以及如何组成RDD血缘图。</p>
+<p><strong>所以本文主要目的就是解释清楚：Scheduler将RDD血缘图转变成Stage DAG，然后生成Task，最后提交给Executor去执行的过程。</strong></p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/20191212230626.png" alt="20191212230626.png"></p>
+<h3 id="Stage"><a href="#Stage" class="headerlink" title="Stage"></a>Stage</h3><p>Job的不同分区的计算通常可以并行，但是有些计算需要将数据进行重新分区，这个过程称作shuffle(混洗)。Shuffle的过程是没法完全并行的，这时候就会出现task之间的等待，task的数量也可能发生变化，所以Spark中以shuffle为边界，对task进行划分，划分出来的每段称为Stage。</p>
+<p>Stage代表一组可以并行的执行相同计算的task，每个任务必须有相同的分区规则，这样一个stage中是没有shuffle的。</p>
+<p>在一个Spark App中，stage有一个全局唯一ID，stage id是自增的。</p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/20191028171155.png" alt="20191028171155.png"></p>
+<p>Stage分为两种：</p>
+<ul>
+<li>ResultStage：最后执行的stage，负责Job最终的结果输出，<strong>每个Job有且仅有一个ResultStage</strong>；</li>
+<li>ShuffleMapStage：该stage的输出不是最终结果，而是其他stage的输入数据，通常涉及一次shuffle计算。</li>
+</ul>
+<p>stage创建流程：</p>
+<ul>
+<li>从最终执行action的RDD开始，沿着RDD依赖关系遍历，<br>一旦发现某个RDD的dependency是ShuffleDependency，就创建一个ShuffleMapStage。</li>
+<li>最后创建ResultStage。</li>
+</ul>
+<h4 id="example-1"><a href="#example-1" class="headerlink" title="example 1"></a>example 1</h4><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> rg=sc.parallelize(<span class="type">List</span>((<span class="number">1</span>,<span class="number">10</span>),(<span class="number">2</span>,<span class="number">20</span>)))</span><br><span class="line">rg.reduceByKey(_+_).collect</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/stages-simple.png" alt="stages-simple.png"></p>
+<p>这里reduceByKey操作引起了一次shuffle，所以job被切分成了2个stage。</p>
+<h4 id="example-2"><a href="#example-2" class="headerlink" title="example 2"></a>example 2</h4><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> rddA=sc.parallelize(<span class="type">List</span>((<span class="number">1</span>,<span class="string">&quot;a&quot;</span>),(<span class="number">2</span>,<span class="string">&quot;b&quot;</span>),(<span class="number">3</span>,<span class="string">&quot;c&quot;</span>)))</span><br><span class="line"><span class="keyword">val</span> rddB=sc.parallelize(<span class="type">List</span>((<span class="number">1</span>,<span class="string">&quot;A&quot;</span>),(<span class="number">2</span>,<span class="string">&quot;B&quot;</span>),(<span class="number">3</span>,<span class="string">&quot;C&quot;</span>)))</span><br><span class="line">rddA.join(rddB).collect</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/stages-join.png" alt="stages-join.png"></p>
+<p>join操作导致rddA和rddB都进行了一次shuffle，所以有3个stage。</p>
+<h4 id="example-3"><a href="#example-3" class="headerlink" title="example 3"></a>example 3</h4><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.spark.<span class="type">HashPartitioner</span></span><br><span class="line"><span class="keyword">val</span> rddA=sc.parallelize(<span class="type">List</span>((<span class="number">1</span>,<span class="string">&quot;a&quot;</span>),(<span class="number">2</span>,<span class="string">&quot;b&quot;</span>),(<span class="number">3</span>,<span class="string">&quot;c&quot;</span>))).partitionBy(<span class="keyword">new</span> <span class="type">HashPartitioner</span>(<span class="number">3</span>))</span><br><span class="line"><span class="keyword">val</span> rddB=sc.parallelize(<span class="type">List</span>((<span class="number">1</span>,<span class="string">&quot;A&quot;</span>),(<span class="number">2</span>,<span class="string">&quot;B&quot;</span>),(<span class="number">3</span>,<span class="string">&quot;C&quot;</span>)))</span><br><span class="line">rddA.join(rddB).collect</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/stages-co-join.png" alt="stages-co-join.png"></p>
+<p>WHAT ?</p>
+<p>因为rddA已经定义了Partitioner，这里join操作会保留rddA的分区方式，所以对rddA的依赖是OneToOneDepenency，而对于rddB则是ShuffleDependency。</p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/stage-example-3-2.png" alt="stage-example-3-2.png"></p>
+<h4 id="探索：一个RDD被依赖多次，会如何"><a href="#探索：一个RDD被依赖多次，会如何" class="headerlink" title="探索：一个RDD被依赖多次，会如何"></a>探索：一个RDD被依赖多次，会如何</h4><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> rddA=sc.parallelize(<span class="type">List</span>((<span class="number">1</span>,<span class="string">&quot;a&quot;</span>),(<span class="number">2</span>,<span class="string">&quot;b&quot;</span>),(<span class="number">3</span>,<span class="string">&quot;c&quot;</span>)))</span><br><span class="line">rddA join rddA collect</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/rdd%20use%20twice.png" alt="rdd use twice.png"></p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/rdd-used-twice.png" alt="rdd-used-twice.png"></p>
+<p>一个RDD被两个stage使用了。</p>
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>综上，stage的划分一定是依据shuffle即ShuffleDependency，跟算子和RDD变量的定义没有很强的关系，example2和3中的join操作<code>rddA.join(rddB).collect</code>看起来一模一样，但实际产生的stage划分却差别很大。</p>
+<h3 id="Task"><a href="#Task" class="headerlink" title="Task"></a>Task</h3><p>与stage对应，task也分为两种：</p>
+<ul>
+<li>ShuffleMapTask：即ShuffleMapStage中的task，主要完成map、shuffle计算。</li>
+<li>ResultTask：ResultStage中的task，主要完成最终结果输出或者返回结果给driver的任务。</li>
+</ul>
+<p>一个stage有多少个partition就会创建多少个task，比如一个ShuffleMapStage有10个partition，那么就会创建10个ShuffleMapTask。</p>
+<p>一个Stage中的所有task组成一个TaskSet。</p>
+<h2 id="Job-Submit"><a href="#Job-Submit" class="headerlink" title="Job Submit"></a>Job Submit</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">graph TB</span><br><span class="line">R(RDD.action)--&gt;S(SparkContext.runJob)-- RDD --&gt;D(DAGScheduler.runJob)</span><br><span class="line">-- TaskSet --&gt;T(TaskScheduler.submitTasks)-- TaskDescription --&gt;E(Executor.launchTask)</span><br></pre></td></tr></table></figure>
+
+<p>RDD在action操作中通过SparkContext.runJob方法触发Job执行流程，该方法将调用DagScheduler.runJob方法，将RDD传入DagScheduler。然后，DAGScheduler创建TaskSet提交给TaskScheduler，TaskScheduler再将TaskSet封装成TaskDescription发送给Executor，最后Executor会将TaskDescription提交给线程池来运行。</p>
+<h2 id="Stage-Scheduler-high-level"><a href="#Stage-Scheduler-high-level" class="headerlink" title="Stage Scheduler(high-level)"></a>Stage Scheduler(high-level)</h2><h3 id="DagScheduler"><a href="#DagScheduler" class="headerlink" title="DagScheduler"></a>DagScheduler</h3><p>Stage级别的调度是DagScheduler负责的，也是Spark调度体系的核心。</p>
+<h4 id="DagScheduler的工作模式"><a href="#DagScheduler的工作模式" class="headerlink" title="DagScheduler的工作模式"></a>DagScheduler的工作模式</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sequenceDiagram</span><br><span class="line">    participant M as main thread</span><br><span class="line">    participant L as eventProcessLoop</span><br><span class="line">    participant E as event thread</span><br><span class="line">    M--&gt;&gt;L: post event</span><br><span class="line">    E--&gt;&gt;L: handle event</span><br></pre></td></tr></table></figure>
+
+<p>DagScheduler内部维护了一个事件消息总线eventProcessLoop(类型为DAGSchedulerEventProcessLoop)，其实就是一个用来存储DAGSchedulerEvent类型数据的队列。</p>
+<p>当DagScheduler的一些方法被调用的时候（如submitJob方法），并不会在主线程中处理该任务，而是post一个event(如JobSubmitted)到eventProcessLoop。eventProcessLoop中有一个守护线程，会不断的依次从队列中取出event，然后调用对应的handle(如handleJobSubmitted)方法来执行具体的任务。</p>
+<h3 id="Stage调度流程"><a href="#Stage调度流程" class="headerlink" title="Stage调度流程"></a>Stage调度流程</h3><ul>
+<li><p>1.submit job</p>
+<p>DagScheduler.runJob方法会调用submitJob方法，向eventProcessLoop发送一个JobSubmitted类型的消息，其中包含了RDD等信息。当eventProcessLoop接收到JobSubmitted类型的消息，会调用DagScheduler.handleJobSubmitted方法来处理消息。</p>
+</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sequenceDiagram</span><br><span class="line">    participant M as main thread(runJob)</span><br><span class="line">    participant L as eventProcessLoop</span><br><span class="line">    participant E as event thread(handleJobSubmitted)</span><br><span class="line">    M--&gt;&gt;L: post JobSubmitted event</span><br><span class="line">    E--&gt;&gt;L: handle JobSubmitted event</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>2.create stage</p>
+<ul>
+<li><p>DagScheduler在它的handleJobSubmitted方法中开始创建ResultStage。ResultStage中包含了最终执行action的finalRDD，以及计算函数func。</p>
+</li>
+<li><p>ResultStage有个parents属性，这个属性是个列表，也就是说可以有多个parent stage。创建ResultStage时需要先创建它的parent stage来填充这个属性，也就是说要创建ResultStage直接依赖的所有ShuffleMapStage。</p>
+</li>
+<li><p>通过stage.rdd.dependencies属性，采用宽度优先遍历，一旦发现某个RDD(假设叫rddA)的dependency是ShuffleDependency，就创建一个ShuffleMapStage，ShuffleMapStage中包含的关键信息与ResultStage不同，是rddA的ShuffleDependency和rddA的ShuffleDependency.rdd，也就是说新创建的ShuffleMapStage持有的信息是他自身的最后一个RDD和该RDD的子RDD的dependency。</p>
+</li>
+<li><p>创建一个ShuffleMapStage的过程同理会需要创建它的parent stage，也是若干ShuffleMapStage。如此递归下去，直到创建完所有的ShuffleMapStage，最后才完成ResultStage的创建。最后创建出来的这些Stage(若干ShuffleMapStage加一个ResultStage)，通过parent属性串起来，就像这样</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">graph TD</span><br><span class="line">A[ResultStage]-- parent --&gt;B[ShuffleMapStage 1]</span><br><span class="line">A-- parent --&gt;C[ShuffleMapStage 2]</span><br><span class="line">B-- parent --&gt;D[ShuffleMapStage 3]</span><br></pre></td></tr></table></figure>
+
+<p>这就生成了所谓的DAG图，但是这个图的指向跟执行顺序是反过来的，如果按执行顺序来画DAG图，就是常见的形式了：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">graph TD</span><br><span class="line">D[ShuffleMapStage 3]--&gt;C[ShuffleMapStage 2]</span><br><span class="line">C[ShuffleMapStage 2]--&gt;A[ResultStage]</span><br><span class="line">B[ShuffleMapStage 1]--&gt;A[ResultStage]</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p>3.submit stage</p>
+<p>DagScheduler.handleJobSubmitted方法创建好ResultStage后会提交这个stage(submitStage方法)，在提交一个stage的时候，会要先提交它的parent stage,也是通过递归的形式，直到一个stage的所有parent stage都被提交了，它自己才能被提交，如果一个stage的parent还没有完成，则会把这个stage加入waitingStages。也就是说，DAG图中前面的stage会被先提交。当一个stage的parent都准备好了，也就是执行完了，它才会进入submitMissingTasks的环节。</p>
+</li>
+<li><p>4.submit task</p>
+<p>Task是在DagScheduler（不是TaskScheduler）的submitMissingTasks方法中创建的，包括ShuffleMapTask和ResultTask，与Stage对应。归属于同一个stage的这批Task组成一个TaskSet集合，最后提交给TaskScheduler的就是这个TaskSet集合。</p>
+</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/20191029095005.png" alt="20191029095005.png"></p>
+<h2 id="Task-Scheduler-low-level"><a href="#Task-Scheduler-low-level" class="headerlink" title="Task Scheduler(low-level)"></a>Task Scheduler(low-level)</h2><p>Task的调度工作是由TaskScheduler与SchedulerBackend紧密合作，共同完成的。</p>
+<p>TaskScheduler是task级别的调度器，主要作用是管理task的调度和提交，是Spark底层的调度器。</p>
+<p>SchedulerBackend是TaskScheduler的后端服务，有独立的线程，所有的Executor都会注册到SchedulerBackend，主要作用是进行资源分配、将task分配给executor等。</p>
+<h3 id="Task调度流程"><a href="#Task调度流程" class="headerlink" title="Task调度流程"></a>Task调度流程</h3><p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/spark%20task%20scheduler.png" alt="spark task scheduler.png"></p>
+<p>第一个线程是DAGScheduler的事件处理线程，在其中，Task先经过DAGScheduler（蓝色箭头表示）封装成TaskSet，再由TaskScheduler（绿色箭头）封装成TaskSetManager，并加入调度队列中。</p>
+<p>SchedulerBackend在收到ReviveOffers消息时，会从线程池取一个线程进行makeOffers操作，WorkerOffer创建后传递给TaskScheduler进行分配。</p>
+<p>图中第二个线程就是SchedulerBackend的一个事件分发线程，从Pool中取出最优先的TaskSetManager，然后将WorkerOffer与其中的Task进行配对，生成TaskDescription，发送给WorkerOffer指定的Executor去执行。</p>
+<h3 id="工作流程"><a href="#工作流程" class="headerlink" title="工作流程"></a>工作流程</h3><p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/TaskScheduler.png" alt="TaskScheduler.png"></p>
+<ul>
+<li>1 DAGScheduler(submitMissingTasks方法中)调用TaskScheduler.submitTasks()创建并提交TaskSet给TaskScheduler；</li>
+<li>2 TaskScheduler拿到TaskSet后会创建一个TaskSetManager来管理它，并且把TaskSetManager添加到rootPool调度池中；</li>
+<li>3 调用SchedulerBackend.reviveOffers()方法；</li>
+<li>4 SchedulerBackend发送ReviveOffers消息给DriverEndpoint；</li>
+<li>5 DriverEndpoint收到ReviveOffers消息后，会调用makeOffers()方法创建WorkerOffer，并通过TaskScheduler.resourceOffers()返回offer；</li>
+<li>6 TaskScheduler从rootPool获取按调度算法排序后的TaskSetManager列表，取第一个TaskSetManager，逐个给TaskSet的Task分配WorkerOffer，生成TaskDescription(包含offer信息)；</li>
+<li>7 调用SchedulerBackend.DriverEndpoint的launchTasks方法，将TaskDescription序列化并封装在LaunchTask消息中，发送给offer指定的executor。LaunchTask消息被ExecutorBackend收到后，会将Task信息反序列化，传给Executor.launchTask()，最后使用Executor的线程池中的线程来执行这个Task。</li>
+</ul>
+<h3 id="梳理"><a href="#梳理" class="headerlink" title="梳理"></a>梳理</h3><p>Stage,TaskSet,TaskSetManager是一一对应的，数量相等，都是只存在driver上的。<br>Parition,Task,TaskDescription是一一对应，数量相同，Task和TaskDescription是会被发到executor上的。</p>
+<h3 id="TaskScheduler的调度池"><a href="#TaskScheduler的调度池" class="headerlink" title="TaskScheduler的调度池"></a>TaskScheduler的调度池</h3><p>与DAGScheduler不同的是TaskScheduler有调度池，有两种调度实体，Pool和TaskSetManager。<br>与YARN的调度队列类似，采用了层级队列的方式，Pool是TaskSetManager的容器，起到将TaskSetManager分组的作用。</p>
+<h4 id="Schedulable"><a href="#Schedulable" class="headerlink" title="Schedulable"></a>Schedulable</h4><p>Schedulable是调度实体的基类，有两个子类Pool和TaskSetManager。</p>
+<p>要理解调度规则，必须知道下面几个属性：</p>
+<ul>
+<li>parent：所属调度池，顶层的调度池为root pool；</li>
+<li>schedulableQueue：包含的调度对象组成的队列；</li>
+<li>schedulingMode：调度模式，FIFO or FAIR；</li>
+<li>weight：权重</li>
+<li>minShare：最小分配额(CPU核数)</li>
+<li>runningTasks：运行中task数</li>
+<li>priority：优先级</li>
+<li>stageId：就是stageId</li>
+<li>name：名称</li>
+</ul>
+<p>Pool和TaskSetManager对于这些属性的取值有所不同，从而导致了他们的调度行为也不一样。</p>
+<table>
+<thead>
+<tr>
+<th align="left">properties</th>
+<th align="left">Pool</th>
+<th align="left">TaskSetManager</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">weight</td>
+<td align="left">config</td>
+<td align="left">1</td>
+</tr>
+<tr>
+<td align="left">minShare</td>
+<td align="left">config</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">priority</td>
+<td align="left">0</td>
+<td align="left">jobId</td>
+</tr>
+<tr>
+<td align="left">stageId</td>
+<td align="left">-1</td>
+<td align="left">stageId</td>
+</tr>
+<tr>
+<td align="left">name</td>
+<td align="left">config</td>
+<td align="left">TaskSet_{taskSet.id}</td>
+</tr>
+<tr>
+<td align="left">runningTasks</td>
+<td align="left">Pool所含TaskSetManager的runningTasks和</td>
+<td align="left">TaskSetManager运行中task数</td>
+</tr>
+</tbody></table>
+<h4 id="Pools创建流程"><a href="#Pools创建流程" class="headerlink" title="Pools创建流程"></a>Pools创建流程</h4><p>TaskScheduler有个属性schedulingMode，值取决于配置项<code>spark.scheduler.mode</code>，默认为FIFO。这个属性会导致TaskScheduler使用不同的SchedulableBuilder，即FIFOSchedulableBuilder和FairSchedulableBuilder。</p>
+<p>TaskScheduler在初始化的时候，就会创建root pool，根调度池，是所有pool的祖先。<br>它的属性取值为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">name: &quot;&quot; (空字符串)</span><br><span class="line">schedulingMode: 同TaskScheduler的schedulingMode属性</span><br><span class="line">weight: 0</span><br><span class="line">minShare: 0</span><br></pre></td></tr></table></figure>
+
+<p>注意root pool的调度模式确定了。</p>
+<p>接下来会执行<code>schedulableBuilder.buildPools()</code>方法，</p>
+<ul>
+<li><p>如果是FIFOSchedulableBuilder，则什么都不会发生。</p>
+</li>
+<li><p>若是FairSchedulableBuilder</p>
+<ul>
+<li>1 依据scheduler配置文件(后面会说)，开始创建pool(可以是多个pool，FIFO，FAIR都有可能，取决于配置文件)，并都加入root pool中。</li>
+<li>2 如果现在root pool中没有名为”default”的pool(即配置文件中没有定义一个叫default的pool)，创建default pool，并加入root pool中。<br>这时default pool它的属性取值是固定的：</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">name: &quot;default&quot;</span><br><span class="line">schedulingMode: FIFO</span><br><span class="line">weight: 1</span><br><span class="line">minShare: 0</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="Task加入pool流程"><a href="#Task加入pool流程" class="headerlink" title="Task加入pool流程"></a>Task加入pool流程</h4><p>当TaskScheduler提交task的时候，会先创建TaskSetManager，然后通过schedulableBuilder添加到pool中。</p>
+<ul>
+<li><p>如果是FIFOSchedulableBuilder，则会直接把TaskSetManager加入root pool队列中。</p>
+</li>
+<li><p>若是FairSchedulableBuilder</p>
+<ul>
+<li>1 从<code>spark.scheduler.pool</code>配置获取pool name，没有定义则用’default’；</li>
+<li>2 从root pool遍历找到对应名称的pool，把TaskSetManager加入pool的队列。如果没有找到，则创建一个该名称的pool，采用与default pool相同的属性配置，并加入root pool。</li>
+</ul>
+</li>
+</ul>
+<h4 id="调度池结构"><a href="#调度池结构" class="headerlink" title="调度池结构"></a>调度池结构</h4><p>经过上面两部分，最终得到的调度池结构如下：</p>
+<p>spark.scheduler.mode&#x3D;FIFO</p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/20191128210416.png" alt="20191128210416.png"></p>
+<p>spark.scheduler.mode&#x3D;FAIR</p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/20191128210432.png" alt="20191128210432.png"></p>
+<h4 id="Fair-Scheduler-pools配置"><a href="#Fair-Scheduler-pools配置" class="headerlink" title="Fair Scheduler pools配置"></a>Fair Scheduler pools配置</h4><p>Fair Scheduler Pool的划分依赖于配置文件，默认的配置文件为’fairscheduler.xml’，也可以通过配置项”spark.scheduler.allocation.file”指定配置文件。</p>
+<p>煮个栗子，文件内容如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span>?&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">allocations</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">pool</span> <span class="attr">name</span>=<span class="string">&quot;prod&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">schedulingMode</span>&gt;</span>FAIR<span class="tag">&lt;/<span class="name">schedulingMode</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">weight</span>&gt;</span>1<span class="tag">&lt;/<span class="name">weight</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">minShare</span>&gt;</span>2<span class="tag">&lt;/<span class="name">minShare</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">pool</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">pool</span> <span class="attr">name</span>=<span class="string">&quot;test&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">schedulingMode</span>&gt;</span>FIFO<span class="tag">&lt;/<span class="name">schedulingMode</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">weight</span>&gt;</span>2<span class="tag">&lt;/<span class="name">weight</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">minShare</span>&gt;</span>3<span class="tag">&lt;/<span class="name">minShare</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">pool</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">allocations</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>这里配置了两个pool，prod和test，并且配置了相关属性，<strong>这两个pool都会添加到root pool中</strong>。</p>
+<h4 id="调度算法"><a href="#调度算法" class="headerlink" title="调度算法"></a>调度算法</h4><p>以SchedulingAlgorithm为基类，内置实现的调度算法有两种FIFOSchedulingAlgorithm和FairSchedulingAlgorithm，其逻辑如下：</p>
+<ul>
+<li><p>FIFO: 先进先出，优先级比较算法如下，</p>
+<ul>
+<li>1.比较priority，小的优先；</li>
+<li>2.priority相同则比较StageId，小的优先。</li>
+</ul>
+</li>
+<li><p>FAIR：公平调度，优先级比较算法如下，</p>
+<ul>
+<li>1.runningTasks小于minShare的优先级比不小于的优先级要高。</li>
+<li>2.若两者运行的runningTasks都比minShare小，则比较minShare使用率(runningTasks&#x2F;max(minShare,1))，使用率越低优先级越高。</li>
+<li>3.若两者的minShare使用率相同，则比较权重使用率(runningTasks&#x2F;weight)，使用率越低优先级越高。</li>
+<li>4.若权重也相同，则比较name，小的优先。</li>
+</ul>
+</li>
+</ul>
+<h5 id="Pool为FIFO模式下的几种情形"><a href="#Pool为FIFO模式下的几种情形" class="headerlink" title="Pool为FIFO模式下的几种情形"></a>Pool为FIFO模式下的几种情形</h5><p>TaskSetManager之间的比较，其实就是先比较jobId再比较stageId，谁小谁优先，意味着就是谁先提交谁优先。</p>
+<p>Pool之间的比较，不存在！FIFO的pool队列中是不会有pool的。</p>
+<h5 id="Pool为FAIR模式下的几种情形"><a href="#Pool为FAIR模式下的几种情形" class="headerlink" title="Pool为FAIR模式下的几种情形"></a>Pool为FAIR模式下的几种情形</h5><p>TaskSetManager之间的比较，因为minShare&#x3D;0，weight&#x3D;1，FAIR算法变成了：</p>
+<ul>
+<li>1 runningTasks小的优先</li>
+<li>2 runningTasks相同则比较name</li>
+</ul>
+<p>Pool之间的比较，就是标准的FAIR算法。</p>
+<p><strong>当root pool为FAIR模式，先取最优先的pool，再从pool中，按pool的调度模式取优先的TaskSetManager。</strong></p>
+<h4 id="开始使用FAIR-mode"><a href="#开始使用FAIR-mode" class="headerlink" title="开始使用FAIR mode"></a>开始使用FAIR mode</h4><p>启用FAIR模式：</p>
+<ul>
+<li>1 准备好<code>fairscheduler.xml</code>文件</li>
+<li>2 启动参数添加 <code>--conf spark.scheduler.mode=FAIR</code></li>
+<li>3 运行启动命令，如<code>spark-shell --master yarn --deploy-mode client --conf spark.scheode=FAIR</code></li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/ui-fair.png" alt="ui-fair.png"></p>
+<p>启动后如果直接运行Job会自动提交到default pool，那么如何提交Job到指定pool？<br>SparkContext.setLocalProperty(“spark.scheduler.pool”,”poolName”)</p>
+<p>如果每次只运行一个Job，开启FAIR模式的意义不大，那么如何同时运行多个Job？<br>要异步提交Job，需要用到RDD的async action，目前有如下几个：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">countAsync</span><br><span class="line">collectAsync</span><br><span class="line">takeAsync</span><br><span class="line">foreachAsync</span><br><span class="line">foreachPartitionAsync</span><br></pre></td></tr></table></figure>
+
+<p>举个例子：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sc.setLocalProperty(<span class="string">&quot;spark.scheduler.pool&quot;</span>,<span class="string">&quot;test&quot;</span>)</span><br><span class="line">b.foreachAsync(_=&gt;<span class="type">Thread</span>.sleep(<span class="number">100</span>))</span><br><span class="line">sc.setLocalProperty(<span class="string">&quot;spark.scheduler.pool&quot;</span>,<span class="string">&quot;production&quot;</span>)</span><br><span class="line">b.foreachAsync(_=&gt;<span class="type">Thread</span>.sleep(<span class="number">100</span>))</span><br></pre></td></tr></table></figure>
+
+<p>这样就会有两个任务在不同的pool同时运行：</p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/pools.png" alt="pools.png"></p>
+<h4 id="FAIR-mode应用场景"><a href="#FAIR-mode应用场景" class="headerlink" title="FAIR mode应用场景"></a>FAIR mode应用场景</h4><p>场景1：Spark SQL thrift server<br>作用：让离线任务和交互式查询任务分配到不同的pool，给交互式查询任务更高的优先级，这样长时间运行的离线任务就不会一直占用所有资源，阻塞交互式查询任务。</p>
+<p>场景2：Streaming job与Batch job同时运行<br>作用：比如用Streaming接数据写入HDFS，可能产生很多小文件，可以在低优先级的pool定时运行batch job合并小文件。</p>
+<p>另外可以参考Spark Summit 2017的分享：<a target="_blank" rel="noopener" href="https://www.slideshare.net/databricks/continuous-application-with-fair-scheduler-with-robert-xue">Continuous Application with FAIR Scheduler</a></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a target="_blank" rel="noopener" href="https://book.douban.com/subject/30157181/">Spark内核设计的艺术</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/xianpanjia4616/article/details/84405145">spark任务调度FIFO和FAIR的详解</a></p>
+<p><a target="_blank" rel="noopener" href="https://spark.apache.org/docs/latest/job-scheduling.html">Job Scheduling</a></p>
+<p>转载请注明原文地址：<br><a href="https://liam-blog.ml/2019/11/07/spark-core-scheduler/">https://liam-blog.ml/2019/11/07/spark-core-scheduler/</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Spark/" rel="tag"># Spark</a>
+              <a href="/tags/Spark-Core/" rel="tag"># Spark Core</a>
+              <a href="/tags/Scheduler/" rel="tag"># Scheduler</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2019/10/23/2019-10-23-spark-core-rdd/" rel="prev" title="Spark Core解析 1：RDD 弹性分布式数据集">
+                  <i class="fa fa-chevron-left"></i> Spark Core解析 1：RDD 弹性分布式数据集
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2019/12/29/2019-12-29-spark-core-shuffle/" rel="next" title="Spark Core 解析 3：Shuffle">
+                  Spark Core 解析 3：Shuffle <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

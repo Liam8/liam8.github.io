@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"liam-blog.ml","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="1.说明: 首先要部署好Hadoop集群包括HDFS和YARN,这里不再赘述. Spark on YARN模式,不需要启动spark的master和worker,master的工作由YARN完成. 相关路径根据实际情况修改. 1.4和1.6版本部署过程类似.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark on YARN 部署">
+<meta property="og:url" content="https://liam-blog.ml/2016/03/29/2016-03-29-spark-on-yarn/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="1.说明: 首先要部署好Hadoop集群包括HDFS和YARN,这里不再赘述. Spark on YARN模式,不需要启动spark的master和worker,master的工作由YARN完成. 相关路径根据实际情况修改. 1.4和1.6版本部署过程类似.">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://thinkerblogimgs.qiniudn.com/16-4-11/66394000.jpg-l">
+<meta property="og:image" content="http://thinkerblogimgs.qiniudn.com/16-4-11/77012870.jpg-l">
+<meta property="og:image" content="http://thinkerblogimgs.qiniudn.com/16-4-11/49321272.jpg-l">
+<meta property="og:image" content="http://thinkerblogimgs.qiniudn.com/16-4-11/62275273.jpg-l">
+<meta property="article:published_time" content="2016-03-28T22:00:00.000Z">
+<meta property="article:modified_time" content="2022-12-03T09:20:44.228Z">
+<meta property="article:author" content="Liam">
+<meta property="article:tag" content="Spark">
+<meta property="article:tag" content="YARN">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://thinkerblogimgs.qiniudn.com/16-4-11/66394000.jpg-l">
+
+
+<link rel="canonical" href="https://liam-blog.ml/2016/03/29/2016-03-29-spark-on-yarn/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://liam-blog.ml/2016/03/29/2016-03-29-spark-on-yarn/","path":"2016/03/29/2016-03-29-spark-on-yarn/","title":"Spark on YARN 部署"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Spark on YARN 部署 | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3LJ1Y8TCD3"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-3LJ1Y8TCD3","only_pageview":false}</script>
+  <script src="/js/third-party/analytics/google-analytics.js"></script>
+
+
+
+
+
+
+  <script async defer data-website-id="" src=""></script>
+
+  <script defer data-domain="" src=""></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Liam's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hi there, 2022!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-%E8%AF%B4%E6%98%8E"><span class="nav-number">1.</span> <span class="nav-text">1.说明:</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-%E9%83%A8%E7%BD%B2"><span class="nav-number">2.</span> <span class="nav-text">2.部署</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8B%E8%BD%BD"><span class="nav-number">2.1.</span> <span class="nav-text">下载</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE"><span class="nav-number">2.2.</span> <span class="nav-text">配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E4%BF%AE%E6%94%B9"><span class="nav-number">2.2.1.</span> <span class="nav-text">配置文件修改</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%AF%E5%8A%A8%E4%B8%80%E4%B8%AAspark%E5%BA%94%E7%94%A8"><span class="nav-number">2.3.</span> <span class="nav-text">启动一个spark应用</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-%E8%BF%90%E8%A1%8C%E6%A8%A1%E5%BC%8F"><span class="nav-number">3.</span> <span class="nav-text">3.运行模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-%E5%8F%82%E8%80%83%E6%96%87%E7%8C%AE"><span class="nav-number">4.</span> <span class="nav-text">4.参考文献:</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/images/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2016/03/29/2016-03-29-spark-on-yarn/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Spark on YARN 部署 | Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spark on YARN 部署
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2016-03-29 06:00:00" itemprop="dateCreated datePublished" datetime="2016-03-29T06:00:00+08:00">2016-03-29</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-12-03 17:20:44" itemprop="dateModified" datetime="2022-12-03T17:20:44+08:00">2022-12-03</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h1 id="1-说明"><a href="#1-说明" class="headerlink" title="1.说明:"></a>1.说明:</h1><ol>
+<li>首先要部署好Hadoop集群包括HDFS和YARN,这里不再赘述.</li>
+<li>Spark on YARN模式,不需要启动spark的master和worker,master的工作由YARN完成.</li>
+<li>相关路径根据实际情况修改.</li>
+<li>1.4和1.6版本部署过程类似.<span id="more"></span></li>
+</ol>
+<h1 id="2-部署"><a href="#2-部署" class="headerlink" title="2.部署"></a>2.部署</h1><h2 id="下载"><a href="#下载" class="headerlink" title="下载"></a>下载</h2><p>从官网(<a target="_blank" rel="noopener" href="http://spark.apache.org/)%E4%B8%8B%E8%BD%BD%E5%AF%B9%E5%BA%94Hadoop%E7%89%88%E6%9C%AC%E7%9A%84%E5%8C%85,%E5%A6%82spark-1.6.1-bin-hadoop2.4.tgz">http://spark.apache.org/)下载对应Hadoop版本的包,如spark-1.6.1-bin-hadoop2.4.tgz</a>.<br>解压至某个目录,如”&#x2F;usr&#x2F;local&#x2F;hadoop&#x2F;spark-1.6.1-bin-hadoop2.4”.<br>解压后得到如下文件</p>
+<p><img src="http://thinkerblogimgs.qiniudn.com/16-4-11/66394000.jpg-l"></p>
+<h2 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h2><h3 id="配置文件修改"><a href="#配置文件修改" class="headerlink" title="配置文件修改"></a>配置文件修改</h3><p>配置文件在conf目录中.<br>配置环境变量<br>cp spark-env.sh.template spark-env.sh<br>在spark-env.sh中添加如下:<br>export HADOOP_HOME&#x3D;&#x2F;usr&#x2F;local&#x2F;hadoop&#x2F;hadoop-2.4.1<br>export YARN_CONF_DIR&#x3D;$HADOOP_HOME&#x2F;etc&#x2F;hadoop&#x2F;</p>
+<p>配置spark选项<br>cp spark-defaults.conf.template spark-defaults.conf<br>添加如下:<br>spark.master                     yarn            #指定使用yarn<br>spark.driver.memory              1g              #指定driver使用的内存<br>spark.executor.memory            512m            #指定executor使用的内存</p>
+<p>选填:<br>spark.executor.extraClassPath   &#x2F;data&#x2F;hadoop&#x2F;hadoop&#x2F;hadoop-2.4.1&#x2F;share&#x2F;hadoop&#x2F;common&#x2F;lib&#x2F;hadoop-lzo-0.4.20.jar<br>spark.driver.extraClassPath     &#x2F;data&#x2F;hadoop&#x2F;hadoop&#x2F;hadoop-2.4.1&#x2F;share&#x2F;hadoop&#x2F;common&#x2F;lib&#x2F;*<br>spark.kryoserializer.buffer.max  256m</p>
+<p>另外也可以设置一下Spark的log4j配置文件，使得屏幕中不打印额外的INFO信息:<br>cp log4j.properties.template log4j.properties<br>修改一行<br>log4j.rootCategory&#x3D;WARN, console</p>
+<h2 id="启动一个spark应用"><a href="#启动一个spark应用" class="headerlink" title="启动一个spark应用"></a>启动一个spark应用</h2><p>执行 .&#x2F;bin&#x2F;spark-shell</p>
+<p>输出将包括如下所示</p>
+<p><img src="http://thinkerblogimgs.qiniudn.com/16-4-11/77012870.jpg-l"></p>
+<p>浏览器访问当前机器的8088端口,将可以看到当前启动的driver的web界面,如下:</p>
+<p><img src="http://thinkerblogimgs.qiniudn.com/16-4-11/49321272.jpg-l"></p>
+<p>点击’Environment’标签,将可以看到相关环境变量和属性的值.</p>
+<p>浏览器访问YARN的管理页面,可以看到有一个SPARK应用正在运行(如下),至此spark就可以跑在YARN上了.</p>
+<p><img src="http://thinkerblogimgs.qiniudn.com/16-4-11/62275273.jpg-l"></p>
+<h1 id="3-运行模式"><a href="#3-运行模式" class="headerlink" title="3.运行模式"></a>3.运行模式</h1><p>Spark on YARN有两种运行模式cluster和client,spark-shell和spark-sql交互式的应用只支持client模式.<br>两种模式区别如下:</p>
+<blockquote>
+<p>从广义上讲，yarn-cluster适用于生产环境；而yarn-client适用于交互和调试，也就是希望快速地看到application的输出。</p>
+</blockquote>
+<p>可以参考这篇博客:Spark:Yarn-cluster和Yarn-client区别与联系(<a target="_blank" rel="noopener" href="http://www.iteblog.com/archives/1223">http://www.iteblog.com/archives/1223</a>).</p>
+<h1 id="4-参考文献"><a href="#4-参考文献" class="headerlink" title="4.参考文献:"></a>4.参考文献:</h1><p>Running Spark on YARN<br><a target="_blank" rel="noopener" href="http://spark.apache.org/docs/latest/running-on-yarn.html">http://spark.apache.org/docs/latest/running-on-yarn.html</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Spark/" rel="tag"># Spark</a>
+              <a href="/tags/YARN/" rel="tag"># YARN</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+            </div>
+            <div class="post-nav-item">
+                <a href="/2016/04/11/2016-04-11-add-udf-to-hive/" rel="next" title="Hive添加自定义UDF函数">
+                  Hive添加自定义UDF函数 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

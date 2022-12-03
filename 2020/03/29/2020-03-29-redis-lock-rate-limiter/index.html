@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"liam-blog.ml","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="分布式锁和分布式限流器应该是算是比较常见的需求了，而Redis现在几乎是应用的标配了，于是很多人会倾向于选择基于Redis来实现，因为不需要引入额外的依赖。 分布式锁和分布式限流器在Java领域比较成熟和常用的开源实现是Redisson(中文官方介绍)，下面从它的极小部分源码，分析下分布式锁和分布式限流器的实现逻辑。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于Redis实现分布式锁和分布式限流器">
+<meta property="og:url" content="https://liam-blog.ml/2020/03/29/2020-03-29-redis-lock-rate-limiter/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="分布式锁和分布式限流器应该是算是比较常见的需求了，而Redis现在几乎是应用的标配了，于是很多人会倾向于选择基于Redis来实现，因为不需要引入额外的依赖。 分布式锁和分布式限流器在Java领域比较成熟和常用的开源实现是Redisson(中文官方介绍)，下面从它的极小部分源码，分析下分布式锁和分布式限流器的实现逻辑。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-03-29T04:37:12.000Z">
+<meta property="article:modified_time" content="2022-12-03T09:20:44.686Z">
+<meta property="article:author" content="Liam">
+<meta property="article:tag" content="redis">
+<meta property="article:tag" content="lock">
+<meta property="article:tag" content="rate limiter">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://liam-blog.ml/2020/03/29/2020-03-29-redis-lock-rate-limiter/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://liam-blog.ml/2020/03/29/2020-03-29-redis-lock-rate-limiter/","path":"2020/03/29/2020-03-29-redis-lock-rate-limiter/","title":"基于Redis实现分布式锁和分布式限流器"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>基于Redis实现分布式锁和分布式限流器 | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3LJ1Y8TCD3"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-3LJ1Y8TCD3","only_pageview":false}</script>
+  <script src="/js/third-party/analytics/google-analytics.js"></script>
+
+
+
+
+
+
+  <script async defer data-website-id="" src=""></script>
+
+  <script defer data-domain="" src=""></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Liam's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hi there, 2022!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-number">1.</span> <span class="nav-text">分布式锁的实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%A0%E9%94%81"><span class="nav-number">1.1.</span> <span class="nav-text">加锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A7%A3%E9%94%81"><span class="nav-number">1.2.</span> <span class="nav-text">解锁</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81%E5%99%A8%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.</span> <span class="nav-text">分布式限流器的实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%8C%AE"><span class="nav-number">3.</span> <span class="nav-text">参考文献</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/images/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2020/03/29/2020-03-29-redis-lock-rate-limiter/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="基于Redis实现分布式锁和分布式限流器 | Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          基于Redis实现分布式锁和分布式限流器
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-03-29 12:37:12" itemprop="dateCreated datePublished" datetime="2020-03-29T12:37:12+08:00">2020-03-29</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-12-03 17:20:44" itemprop="dateModified" datetime="2022-12-03T17:20:44+08:00">2022-12-03</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>分布式锁和分布式限流器应该是算是比较常见的需求了，而Redis现在几乎是应用的标配了，于是很多人会倾向于选择基于Redis来实现，因为不需要引入额外的依赖。</p>
+<p>分布式锁和分布式限流器在Java领域比较成熟和常用的开源实现是Redisson(<a target="_blank" rel="noopener" href="https://github.com/redisson/redisson/wiki/Redisson%E9%A1%B9%E7%9B%AE%E4%BB%8B%E7%BB%8D">中文官方介绍</a>)，下面从它的极小部分源码，分析下分布式锁和分布式限流器的实现逻辑。</p>
+<span id="more"></span>
+<h2 id="分布式锁的实现"><a href="#分布式锁的实现" class="headerlink" title="分布式锁的实现"></a>分布式锁的实现</h2><h3 id="加锁"><a href="#加锁" class="headerlink" title="加锁"></a>加锁</h3><p>Redisson中加锁实现的核心源码如下，为了实现操作的原子性，不得不使用eval命令加Lua脚本的方式。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">&lt;T&gt; RFuture&lt;T&gt; <span class="title function_">tryLockInnerAsync</span><span class="params">(<span class="type">long</span> leaseTime, TimeUnit unit, <span class="type">long</span> threadId, RedisStrictCommand&lt;T&gt; command)</span> &#123;</span><br><span class="line">    internalLockLeaseTime = unit.toMillis(leaseTime);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> commandExecutor.evalWriteAsync(getName(), LongCodec.INSTANCE, command,</span><br><span class="line">              <span class="string">&quot;if (redis.call(&#x27;exists&#x27;, KEYS[1]) == 0) then &quot;</span> +</span><br><span class="line">                  <span class="string">&quot;redis.call(&#x27;hincrby&#x27;, KEYS[1], ARGV[2], 1); &quot;</span> +</span><br><span class="line">                  <span class="string">&quot;redis.call(&#x27;pexpire&#x27;, KEYS[1], ARGV[1]); &quot;</span> +</span><br><span class="line">                  <span class="string">&quot;return nil; &quot;</span> +</span><br><span class="line">              <span class="string">&quot;end; &quot;</span> +</span><br><span class="line">              <span class="string">&quot;if (redis.call(&#x27;hexists&#x27;, KEYS[1], ARGV[2]) == 1) then &quot;</span> +</span><br><span class="line">                  <span class="string">&quot;redis.call(&#x27;hincrby&#x27;, KEYS[1], ARGV[2], 1); &quot;</span> +</span><br><span class="line">                  <span class="string">&quot;redis.call(&#x27;pexpire&#x27;, KEYS[1], ARGV[1]); &quot;</span> +</span><br><span class="line">                  <span class="string">&quot;return nil; &quot;</span> +</span><br><span class="line">              <span class="string">&quot;end; &quot;</span> +</span><br><span class="line">              <span class="string">&quot;return redis.call(&#x27;pttl&#x27;, KEYS[1]);&quot;</span>,</span><br><span class="line">                Collections.&lt;Object&gt;singletonList(getName()), internalLockLeaseTime, getLockName(threadId));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>把上面的Lua代码的逻辑翻译成redis命令组成的伪代码：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">//获取锁</span><br><span class="line"><span class="keyword">if</span> exists <span class="variable">$lockName</span> == 0</span><br><span class="line">  hset <span class="variable">$lockName</span> <span class="variable">$threadUid</span> 1</span><br><span class="line">  pexpire <span class="variable">$lockName</span> <span class="variable">$expireTime</span></span><br><span class="line">  <span class="built_in">return</span> nil</span><br><span class="line">//重入锁</span><br><span class="line"><span class="keyword">if</span> hexists <span class="variable">$lockName</span> <span class="variable">$threadUid</span> == 1</span><br><span class="line">   hincrby <span class="variable">$lockName</span> <span class="variable">$threadUid</span> 1</span><br><span class="line">   pexpire <span class="variable">$lockName</span> <span class="variable">$expireTime</span></span><br><span class="line">  <span class="built_in">return</span> nil</span><br><span class="line">//获取失败</span><br><span class="line"><span class="built_in">return</span> pttl <span class="variable">$lockName</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>现在逻辑很清晰了吧，注意这里的锁使用了hash结构而不是string，因为实现的是可重入锁，需要记录加锁的线程标识，并维持一个计数器。</p>
+<p>有的需求是要线程一直等待直到获取到锁的，Redisson中通过subscribe命令订阅锁相关的一个channel，收到通知后会再次尝试获取锁。</p>
+<p>关于可重入锁,我在<a href="https://liam-blog.ml/2019/07/21/Scala-Concurrency-in-Practice-2/">Scala并发编程实战 2：Lock 锁</a>中有解释过：</p>
+<blockquote>
+<p>所谓可重入锁，也就是说一个线程可以在持有该锁的时候，再次获取该锁。可重入锁通常与一个计数器关联，第一次获取锁的时候，计数器从0变为1，再次获取锁，变为2，以此类推。释放锁的时候，计数器每次减1，直至减为0，该锁才真正释放给其他线程。</p>
+</blockquote>
+<p>另外需要注意的是，这里实现的锁是有过期时间的，如果需要一直持有锁，redisson中的实现是，会用一个定时任务不断去刷新过期时间。(可以想想，为什么不用一个永不过期的key来实现呢？)</p>
+<h3 id="解锁"><a href="#解锁" class="headerlink" title="解锁"></a>解锁</h3><p>下面看解锁的源码。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> RFuture&lt;Boolean&gt; <span class="title function_">unlockInnerAsync</span><span class="params">(<span class="type">long</span> threadId)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> commandExecutor.evalWriteAsync(getName(), LongCodec.INSTANCE, RedisCommands.EVAL_BOOLEAN,</span><br><span class="line">            <span class="string">&quot;if (redis.call(&#x27;hexists&#x27;, KEYS[1], ARGV[3]) == 0) then &quot;</span> +</span><br><span class="line">                <span class="string">&quot;return nil;&quot;</span> +</span><br><span class="line">            <span class="string">&quot;end; &quot;</span> +</span><br><span class="line">            <span class="string">&quot;local counter = redis.call(&#x27;hincrby&#x27;, KEYS[1], ARGV[3], -1); &quot;</span> +</span><br><span class="line">            <span class="string">&quot;if (counter &gt; 0) then &quot;</span> +</span><br><span class="line">                <span class="string">&quot;redis.call(&#x27;pexpire&#x27;, KEYS[1], ARGV[2]); &quot;</span> +</span><br><span class="line">                <span class="string">&quot;return 0; &quot;</span> +</span><br><span class="line">            <span class="string">&quot;else &quot;</span> +</span><br><span class="line">                <span class="string">&quot;redis.call(&#x27;del&#x27;, KEYS[1]); &quot;</span> +</span><br><span class="line">                <span class="string">&quot;redis.call(&#x27;publish&#x27;, KEYS[2], ARGV[1]); &quot;</span> +</span><br><span class="line">                <span class="string">&quot;return 1; &quot;</span>+</span><br><span class="line">            <span class="string">&quot;end; &quot;</span> +</span><br><span class="line">            <span class="string">&quot;return nil;&quot;</span>,</span><br><span class="line">            Arrays.&lt;Object&gt;asList(getName(), getChannelName()), LockPubSub.UNLOCK_MESSAGE, internalLockLeaseTime, getLockName(threadId));</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>核心也是Lua实现，翻译下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">//锁是否存在</span><br><span class="line"><span class="keyword">if</span> exists <span class="variable">$lockName</span> == 0</span><br><span class="line">   publish <span class="variable">$channel</span> 0</span><br><span class="line">   <span class="built_in">return</span> 1</span><br><span class="line">//是否持有锁</span><br><span class="line"><span class="keyword">if</span> hexists <span class="variable">$lockName</span> <span class="variable">$threadUid</span> ==0</span><br><span class="line">  <span class="built_in">return</span> nil</span><br><span class="line"></span><br><span class="line">//减少持有计数</span><br><span class="line">counter = hincrby <span class="variable">$lockName</span> <span class="variable">$threadUid</span> -1</span><br><span class="line"><span class="keyword">if</span> counter &gt; 0</span><br><span class="line">  //刷新锁</span><br><span class="line">  pexpire <span class="variable">$lockName</span> <span class="variable">$expireTime</span></span><br><span class="line">  <span class="built_in">return</span> 0</span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">  //释放锁</span><br><span class="line">  del <span class="variable">$lockName</span></span><br><span class="line">  publish <span class="variable">$channel</span> 0</span><br><span class="line">  <span class="built_in">return</span> 1</span><br></pre></td></tr></table></figure>
+
+<p>逻辑应该容易看懂，其中publish是为了通知其他线程锁释放了，可以来抢啦。</p>
+<h2 id="分布式限流器的实现"><a href="#分布式限流器的实现" class="headerlink" title="分布式限流器的实现"></a>分布式限流器的实现</h2><p>如果一个服务有多个实例，做限流的话，通常有两种方式，一种是对每个实例单独限制，一种是对所有实例整体的流量做限制。<br>Redisson中对这两种都有实现，以限流器的类型来区分，第一种称作PER_CLIENT，第二种为OVERALL。</p>
+<p>限流算法有若干种，Redisson采用的是令牌桶算法，核心实现同样是Lua：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> &lt;T&gt; RFuture&lt;T&gt; <span class="title function_">tryAcquireAsync</span><span class="params">(RedisCommand&lt;T&gt; command, Long value)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> commandExecutor.evalWriteAsync(getName(), LongCodec.INSTANCE, command,</span><br><span class="line">            <span class="string">&quot;local rate = redis.call(&#x27;hget&#x27;, KEYS[1], &#x27;rate&#x27;);&quot;</span></span><br><span class="line">          + <span class="string">&quot;local interval = redis.call(&#x27;hget&#x27;, KEYS[1], &#x27;interval&#x27;);&quot;</span></span><br><span class="line">          + <span class="string">&quot;local type = redis.call(&#x27;hget&#x27;, KEYS[1], &#x27;type&#x27;);&quot;</span></span><br><span class="line">          + <span class="string">&quot;assert(rate ~= false and interval ~= false and type ~= false, &#x27;RateLimiter is not initialized&#x27;)&quot;</span></span><br><span class="line">          </span><br><span class="line">          + <span class="string">&quot;local valueName = KEYS[2];&quot;</span></span><br><span class="line">          + <span class="string">&quot;if type == &#x27;1&#x27; then &quot;</span></span><br><span class="line">              + <span class="string">&quot;valueName = KEYS[3];&quot;</span></span><br><span class="line">          + <span class="string">&quot;end;&quot;</span></span><br><span class="line">          </span><br><span class="line">          + <span class="string">&quot;local currentValue = redis.call(&#x27;get&#x27;, valueName); &quot;</span></span><br><span class="line">          + <span class="string">&quot;if currentValue ~= false then &quot;</span></span><br><span class="line">                 + <span class="string">&quot;if tonumber(currentValue) &lt; tonumber(ARGV[1]) then &quot;</span></span><br><span class="line">                     + <span class="string">&quot;return redis.call(&#x27;pttl&#x27;, valueName); &quot;</span></span><br><span class="line">                 + <span class="string">&quot;else &quot;</span></span><br><span class="line">                     + <span class="string">&quot;redis.call(&#x27;decrby&#x27;, valueName, ARGV[1]); &quot;</span></span><br><span class="line">                     + <span class="string">&quot;return nil; &quot;</span></span><br><span class="line">                 + <span class="string">&quot;end; &quot;</span></span><br><span class="line">          + <span class="string">&quot;else &quot;</span></span><br><span class="line">                 + <span class="string">&quot;assert(tonumber(rate) &gt;= tonumber(ARGV[1]), &#x27;Requested permits amount could not exceed defined rate&#x27;); &quot;</span></span><br><span class="line">                 + <span class="string">&quot;redis.call(&#x27;set&#x27;, valueName, rate, &#x27;px&#x27;, interval); &quot;</span></span><br><span class="line">                 + <span class="string">&quot;redis.call(&#x27;decrby&#x27;, valueName, ARGV[1]); &quot;</span></span><br><span class="line">                 + <span class="string">&quot;return nil; &quot;</span></span><br><span class="line">          + <span class="string">&quot;end;&quot;</span>,</span><br><span class="line">            Arrays.asList(getName(), getValueName(), getClientValueName()),</span><br><span class="line">            value);    </span><br></pre></td></tr></table></figure>
+
+<p>简化为伪代码：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">//令牌桶容量</span><br><span class="line"><span class="variable">$rate</span> = hget <span class="variable">$configKey</span> rate</span><br><span class="line">//间隔（比如rate=10,interval=1000,就代表1000毫秒中允许10次，即QPS为10）</span><br><span class="line"><span class="variable">$interval</span> = hget <span class="variable">$configKey</span> interval</span><br><span class="line">//类型</span><br><span class="line"><span class="variable">$type</span> = hget <span class="variable">$configKey</span> <span class="built_in">type</span></span><br><span class="line">//检查限流器是否已经初始化</span><br><span class="line">assert(<span class="variable">$rate</span>,<span class="variable">$interval</span>,<span class="variable">$type</span>都存在)</span><br><span class="line"></span><br><span class="line">//<span class="variable">$valueName</span>是存储令牌桶的key</span><br><span class="line"><span class="variable">$valueName</span> = <span class="variable">$valueKey</span></span><br><span class="line">//如果是PER_CLIENT类型</span><br><span class="line"><span class="keyword">if</span> <span class="built_in">type</span> == <span class="string">&#x27;1&#x27;</span></span><br><span class="line">   <span class="variable">$valueName</span> = <span class="variable">$clientValueKey</span></span><br><span class="line"></span><br><span class="line">//<span class="variable">$currentValue</span>是当前令牌数，<span class="variable">$acquireValue</span>是申请的令牌数</span><br><span class="line"><span class="variable">$currentValue</span> = get <span class="variable">$valueName</span></span><br><span class="line"><span class="keyword">if</span> <span class="variable">$currentValue</span> != <span class="literal">false</span></span><br><span class="line">    //令牌桶已经存在</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> <span class="variable">$currentValue</span> &lt; <span class="variable">$acquireValue</span></span><br><span class="line">        //令牌小于申请数，申请令牌失败</span><br><span class="line">        <span class="built_in">return</span> pttl <span class="variable">$valueName</span></span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        //令牌 减去 申请数</span><br><span class="line">        decrby <span class="variable">$valueName</span> <span class="variable">$acquireValue</span></span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">    //令牌桶不存在</span><br><span class="line"></span><br><span class="line">    //检查申请数不能大于令牌桶容量</span><br><span class="line">    assert(<span class="variable">$rate</span>&gt;<span class="variable">$acquireValue</span>)</span><br><span class="line">    //创建令牌桶</span><br><span class="line">    <span class="built_in">set</span> <span class="variable">$valueName</span> <span class="variable">$rate</span> px <span class="variable">$interval</span></span><br><span class="line">    decrby <span class="variable">$valueName</span> <span class="variable">$acquireValue</span></span><br><span class="line">    <span class="built_in">return</span> nil</span><br></pre></td></tr></table></figure>
+
+<p>值得一提的是，令牌桶的配置信息也保存到了redis中，可以看到rate，interval，type信息都是从一个hash结构中获取的，从获取令牌桶配置到更新令牌桶整个过程是原子化的。这是考虑到多个应用实例的情况下，每个实例拿到的限流器的配置可能出现不一致的情况，特别是在修改限流器配置的时候。</p>
+<h2 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h2><p><a target="_blank" rel="noopener" href="https://github.com/redisson/redisson">Redisson github</a><br>转载请注明原文地址：<a href="https://liam-blog.ml/2020/03/29/redis-lock-rate-limiter/">Liam’s Blog</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/redis/" rel="tag"># redis</a>
+              <a href="/tags/lock/" rel="tag"># lock</a>
+              <a href="/tags/rate-limiter/" rel="tag"># rate limiter</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/02/29/2020-02-29-spark-core-memory/" rel="prev" title="Spark Core 解析 4：内存模型">
+                  <i class="fa fa-chevron-left"></i> Spark Core 解析 4：内存模型
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/05/31/2020-05-31-details-you-need-to-know-about-Apache-Parquet/" rel="next" title="Details you need to know about Apache Parquet">
+                  Details you need to know about Apache Parquet <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

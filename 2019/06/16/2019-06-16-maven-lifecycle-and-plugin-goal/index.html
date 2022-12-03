@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"liam-blog.ml","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="Maven的所有实际操作都是由插件完成的，如果没有插件，Maven什么都不会干。（即时你没有在POM中配置&lt;plugin&gt;元素，Super POM中也已经帮你引入了若干核心插件） 那么问题来了，项目构建过程中，Maven是怎么知道应该在什么时候调用哪个插件的呢？ 插件的调用时机，跟’生命周期’和’插件目标’有很大关系。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Maven用户都应该知道的一些事：构建生命周期和插件">
+<meta property="og:url" content="https://liam-blog.ml/2019/06/16/2019-06-16-maven-lifecycle-and-plugin-goal/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="Maven的所有实际操作都是由插件完成的，如果没有插件，Maven什么都不会干。（即时你没有在POM中配置&lt;plugin&gt;元素，Super POM中也已经帮你引入了若干核心插件） 那么问题来了，项目构建过程中，Maven是怎么知道应该在什么时候调用哪个插件的呢？ 插件的调用时机，跟’生命周期’和’插件目标’有很大关系。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2019-06-16T09:11:31.000Z">
+<meta property="article:modified_time" content="2022-12-03T09:20:44.451Z">
+<meta property="article:author" content="Liam">
+<meta property="article:tag" content="Maven">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://liam-blog.ml/2019/06/16/2019-06-16-maven-lifecycle-and-plugin-goal/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://liam-blog.ml/2019/06/16/2019-06-16-maven-lifecycle-and-plugin-goal/","path":"2019/06/16/2019-06-16-maven-lifecycle-and-plugin-goal/","title":"Maven用户都应该知道的一些事：构建生命周期和插件"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Maven用户都应该知道的一些事：构建生命周期和插件 | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3LJ1Y8TCD3"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-3LJ1Y8TCD3","only_pageview":false}</script>
+  <script src="/js/third-party/analytics/google-analytics.js"></script>
+
+
+
+
+
+
+  <script async defer data-website-id="" src=""></script>
+
+  <script defer data-domain="" src=""></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Liam's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hi there, 2022!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%8F%92%E4%BB%B6%E7%9B%AE%E6%A0%87-Plugin-Goal-%E6%98%AF%E4%B8%AA%E4%BB%80%E4%B9%88%E9%AC%BC"><span class="nav-number">1.</span> <span class="nav-text">插件目标(Plugin Goal)是个什么鬼</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%9E%84%E5%BB%BA%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F-Build-Lifecycle-%E5%8F%88%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-number">2.</span> <span class="nav-text">构建生命周期(Build Lifecycle)又是什么</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Clean-Lifecycle"><span class="nav-number">2.0.1.</span> <span class="nav-text">Clean Lifecycle</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Default-Lifecycle"><span class="nav-number">2.0.2.</span> <span class="nav-text">Default Lifecycle</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Site-Lifecycle"><span class="nav-number">2.0.3.</span> <span class="nav-text">Site Lifecycle</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%8F%92%E4%BB%B6%E7%9B%AE%E6%A0%87%E4%B8%8E%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E7%9A%84%E7%BB%91%E5%AE%9A"><span class="nav-number">3.</span> <span class="nav-text">插件目标与生命周期的绑定</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%8C%AE"><span class="nav-number">4.</span> <span class="nav-text">参考文献</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/images/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2019/06/16/2019-06-16-maven-lifecycle-and-plugin-goal/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Maven用户都应该知道的一些事：构建生命周期和插件 | Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Maven用户都应该知道的一些事：构建生命周期和插件
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2019-06-16 17:11:31" itemprop="dateCreated datePublished" datetime="2019-06-16T17:11:31+08:00">2019-06-16</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-12-03 17:20:44" itemprop="dateModified" datetime="2022-12-03T17:20:44+08:00">2022-12-03</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p><strong>Maven的所有实际操作都是由插件完成的，如果没有插件，Maven什么都不会干。</strong><br>（即时你没有在POM中配置<code>&lt;plugin&gt;</code>元素，Super POM中也已经帮你引入了若干核心插件）</p>
+<p>那么问题来了，项目构建过程中，Maven是怎么知道应该在什么时候调用哪个插件的呢？</p>
+<p>插件的调用时机，跟’生命周期’和’插件目标’有很大关系。</p>
+<span id="more"></span>
+
+<h1 id="插件目标-Plugin-Goal-是个什么鬼"><a href="#插件目标-Plugin-Goal-是个什么鬼" class="headerlink" title="插件目标(Plugin Goal)是个什么鬼"></a>插件目标(Plugin Goal)是个什么鬼</h1><p>首先需要知道的是，Maven的所有具体任务都是交由插件实现的，而一个插件往往能实现若干个任务或功能。又或者可以说一个插件能实现若干个目标，比如编译源码、执行测试用例、打包项目等等。<br>简单来说，在Maven中Plugin Goal可以看做是插件的一个功能。</p>
+<p>Plugin Goal通常用‘插件前缀:插件目标‘的格式描述，常见的有：<code>compiler:compile</code>,<code>surefire:test</code>,<code>dependency:tree</code>等。</p>
+<p>所谓插件前缀就是插件的名称的一个简写，比如compiler指的就是maven-complier-plugin这个插件。<br><code>compiler:compile</code>的意思既是maven-complier-plugin插件的compile目标。</p>
+<h1 id="构建生命周期-Build-Lifecycle-又是什么"><a href="#构建生命周期-Build-Lifecycle-又是什么" class="headerlink" title="构建生命周期(Build Lifecycle)又是什么"></a>构建生命周期(Build Lifecycle)又是什么</h1><p>构建生命周期是对构建过程的抽象和统一，包括了几乎所有的构建步骤，如清理、初始化、编译、测试、打包等等。</p>
+<p>Maven为不用的目的定义了3套相互独立的生命周期：</p>
+<ul>
+<li>clean 用于清理项目</li>
+<li>default 用于构建项目</li>
+<li>site 用于构建项目站点</li>
+</ul>
+<p>每种生命周期都是由若干阶段(phase)组成，如clean生命周期由pre-clean,clean,post-clean三个阶段组成。</p>
+<p>阶段之间是有序的，而且后面的阶段依赖前面的阶段。<br>用户执行<code>mvn clean</code>时，实际上maven会先执行pre-clean阶段，然后再执行clean阶段；执行<code>mvn post-clean</code>时，则会依次执行pre-clean,clean,post-clean三个阶段。</p>
+<p>3个生命周期各自的阶段如下：</p>
+<h3 id="Clean-Lifecycle"><a href="#Clean-Lifecycle" class="headerlink" title="Clean Lifecycle"></a>Clean Lifecycle</h3><table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>pre-clean</td>
+<td>execute processes needed prior to the actual project cleaning</td>
+</tr>
+<tr>
+<td>clean</td>
+<td>remove all files generated by the previous build</td>
+</tr>
+<tr>
+<td>post-clean</td>
+<td>execute processes needed to finalize the project cleaning</td>
+</tr>
+</tbody></table>
+<h3 id="Default-Lifecycle"><a href="#Default-Lifecycle" class="headerlink" title="Default Lifecycle"></a>Default Lifecycle</h3><table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>validate</td>
+<td>validate the project is correct and all necessary information is available.</td>
+</tr>
+<tr>
+<td>initialize</td>
+<td>initialize build state, e.g. set properties or create directories.</td>
+</tr>
+<tr>
+<td>generate-sources</td>
+<td>generate any source code for inclusion in compilation.</td>
+</tr>
+<tr>
+<td>process-sources</td>
+<td>process the source code, for example to filter any values.</td>
+</tr>
+<tr>
+<td>generate-resources</td>
+<td>generate resources for inclusion in the package.</td>
+</tr>
+<tr>
+<td>process-resources</td>
+<td>copy and process the resources into the destination directory, ready for packaging.</td>
+</tr>
+<tr>
+<td>compile</td>
+<td>compile the source code of the project.</td>
+</tr>
+<tr>
+<td>process-classes</td>
+<td>post-process the generated files from compilation, for example to do bytecode enhancement on Java classes.</td>
+</tr>
+<tr>
+<td>generate-test-sources</td>
+<td>generate any test source code for inclusion in compilation.</td>
+</tr>
+<tr>
+<td>process-test-sources</td>
+<td>process the test source code, for example to filter any values.</td>
+</tr>
+<tr>
+<td>generate-test-resources</td>
+<td>create resources for testing.</td>
+</tr>
+<tr>
+<td>process-test-resources</td>
+<td>copy and process the resources into the test destination directory.</td>
+</tr>
+<tr>
+<td>test-compile</td>
+<td>compile the test source code into the test destination directory</td>
+</tr>
+<tr>
+<td>process-test-classes</td>
+<td>post-process the generated files from test compilation, for example to do bytecode enhancement on Java classes. For Maven 2.0.5 and above.</td>
+</tr>
+<tr>
+<td>test</td>
+<td>run tests using a suitable unit testing framework. These tests should not require the code be packaged or deployed.</td>
+</tr>
+<tr>
+<td>prepare-package</td>
+<td>perform any operations necessary to prepare a package before the actual packaging. This often results in an unpacked, processed version of the package. (Maven 2.1 and above)</td>
+</tr>
+<tr>
+<td>package</td>
+<td>take the compiled code and package it in its distributable format, such as a JAR.</td>
+</tr>
+<tr>
+<td>pre-integration-test</td>
+<td>perform actions required before integration tests are executed. This may involve things such as setting up the required environment.</td>
+</tr>
+<tr>
+<td>integration-test</td>
+<td>process and deploy the package if necessary into an environment where integration tests can be run.</td>
+</tr>
+<tr>
+<td>post-integration-test</td>
+<td>perform actions required after integration tests have been executed. This may including cleaning up the environment.</td>
+</tr>
+<tr>
+<td>verify</td>
+<td>run any checks to verify the package is valid and meets quality criteria.</td>
+</tr>
+<tr>
+<td>install</td>
+<td>install the package into the local repository, for use as a dependency in other projects locally.</td>
+</tr>
+<tr>
+<td>deploy</td>
+<td>done in an integration or release environment, copies the final package to the remote repository for sharing with other developers and projects.</td>
+</tr>
+</tbody></table>
+<h3 id="Site-Lifecycle"><a href="#Site-Lifecycle" class="headerlink" title="Site Lifecycle"></a>Site Lifecycle</h3><table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>pre-site</td>
+<td>execute processes needed prior to the actual project site generation</td>
+</tr>
+<tr>
+<td>site</td>
+<td>generate the project’s site documentation</td>
+</tr>
+<tr>
+<td>post-site</td>
+<td>execute processes needed to finalize the site generation, and to prepare for site deployment</td>
+</tr>
+<tr>
+<td>site-deploy</td>
+<td>deploy the generated site documentation to the specified web server</td>
+</tr>
+</tbody></table>
+<h1 id="插件目标与生命周期的绑定"><a href="#插件目标与生命周期的绑定" class="headerlink" title="插件目标与生命周期的绑定"></a>插件目标与生命周期的绑定</h1><p><strong>插件目标是与生命周期的某个阶段绑定的</strong>，比如maven-clean-plugin的clean目标与clean阶段绑定，也就意味着当maven执行clean生命周期时，到达clean阶段的时候，会调用maven-clean-plugin的clean目标(删除项目输出目录)。</p>
+<p>也就是说，<strong>插件目标的执行顺序是由其绑定到的生命周期阶段的顺序决定的，如果多个插件目标绑定到同一个阶段，那么先声明的插件会在后声明的插件之前执行。</strong></p>
+<p>对于一些核心插件，Maven已经内置默认将一些插件目标绑定到了生命周期阶段，特别是default生命周期，对于不同的打包类型（jar,war,pom等），Maven提供了不同的默认绑定。如下所示：</p>
+<p><strong>Clean Lifecycle Bindings</strong></p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>plugin:goal</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>clean</td>
+<td>clean:clean</td>
+</tr>
+</tbody></table>
+<p><strong>Default Lifecycle Bindings - Packaging ejb &#x2F; ejb3 &#x2F; jar &#x2F; par &#x2F; rar &#x2F; war</strong></p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>plugin:goal</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>process-resources</td>
+<td>resources:resources</td>
+</tr>
+<tr>
+<td>compile</td>
+<td>compiler:compile</td>
+</tr>
+<tr>
+<td>process-test-resources</td>
+<td>resources:testResources</td>
+</tr>
+<tr>
+<td>test-compile</td>
+<td>compiler:testCompile</td>
+</tr>
+<tr>
+<td>test</td>
+<td>surefire:test</td>
+</tr>
+<tr>
+<td>package</td>
+<td>ejb:ejb  or  ejb3:ejb3  or  jar:jar  or  par:par  or  rar:rar  or  war:war</td>
+</tr>
+<tr>
+<td>install</td>
+<td>install:install</td>
+</tr>
+<tr>
+<td>deploy</td>
+<td>deploy:deploy</td>
+</tr>
+</tbody></table>
+<p><strong>Default Lifecycle Bindings - Packaging ear</strong></p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>plugin:goal</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>generate-resources</td>
+<td>ear:generate-application-xml</td>
+</tr>
+<tr>
+<td>process-resources</td>
+<td>resources:resources</td>
+</tr>
+<tr>
+<td>package</td>
+<td>ear:ear</td>
+</tr>
+<tr>
+<td>install</td>
+<td>install:install</td>
+</tr>
+<tr>
+<td>deploy</td>
+<td>deploy:deploy</td>
+</tr>
+</tbody></table>
+<p><strong>Default Lifecycle Bindings - Packaging maven-plugin</strong></p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>plugin:goal</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>generate-resources</td>
+<td>plugin:descriptor</td>
+</tr>
+<tr>
+<td>process-resources</td>
+<td>resources:resources</td>
+</tr>
+<tr>
+<td>compile</td>
+<td>compiler:compile</td>
+</tr>
+<tr>
+<td>process-test-resources</td>
+<td>resources:testResources</td>
+</tr>
+<tr>
+<td>test-compile</td>
+<td>compiler:testCompile</td>
+</tr>
+<tr>
+<td>test</td>
+<td>surefire:test</td>
+</tr>
+<tr>
+<td>package</td>
+<td>jar:jar and plugin:addPluginArtifactMetadata</td>
+</tr>
+<tr>
+<td>install</td>
+<td>install:install</td>
+</tr>
+<tr>
+<td>deploy</td>
+<td>deploy:deploy</td>
+</tr>
+</tbody></table>
+<p><strong>Default Lifecycle Bindings - Packaging pom</strong></p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>plugin:goal</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>package</td>
+<td></td>
+</tr>
+<tr>
+<td>install</td>
+<td>install:install</td>
+</tr>
+<tr>
+<td>deploy</td>
+<td>deploy:deploy</td>
+</tr>
+</tbody></table>
+<p><strong>Site Lifecycle Bindings</strong></p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>plugin:goal</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>site</td>
+<td>site:site</td>
+</tr>
+<tr>
+<td>site-deploy</td>
+<td>site:deploy</td>
+</tr>
+</tbody></table>
+<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><ul>
+<li><a target="_blank" rel="noopener" href="https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html">Introduction to the Build Lifecycle</a></li>
+<li><a target="_blank" rel="noopener" href="https://book.douban.com/subject/5345682/">《Maven实战》</a></li>
+</ul>
+<p>转载请保留原文地址：<a href="https://liam-blog.ml/2019/06/16/maven-lifecycle-and-plugin-goal/">Maven用户都应该知道的一些事：构建生命周期和插件</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Maven/" rel="tag"># Maven</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2019/02/20/2019-02-20-hive-window-sql/" rel="prev" title="Hive窗口函数实战">
+                  <i class="fa fa-chevron-left"></i> Hive窗口函数实战
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2019/06/20/2019-06-20-maven-details-about-dependency/" rel="next" title="Maven用户都应该知道的一些事：关于依赖的常见问题">
+                  Maven用户都应该知道的一些事：关于依赖的常见问题 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
