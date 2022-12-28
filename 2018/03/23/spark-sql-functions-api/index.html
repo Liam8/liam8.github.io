@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"liam-blog.ml","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="Summaryorg.apache.spark.sql.functions是一个Object，提供了约两百多个函数。 大部分函数与Hive的差不多。 除UDF函数，均可在spark-sql中直接使用。 经过import org.apache.spark.sql.functions._ ，也可以用于Dataframe，Dataset。 version2.3.0 大部分支持Column的函数也支持St">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark API 全集(2):Spark SQL 函数全集">
+<meta property="og:url" content="https://liam-blog.ml/2018/03/23/spark-sql-functions-api/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="Summaryorg.apache.spark.sql.functions是一个Object，提供了约两百多个函数。 大部分函数与Hive的差不多。 除UDF函数，均可在spark-sql中直接使用。 经过import org.apache.spark.sql.functions._ ，也可以用于Dataframe，Dataset。 version2.3.0 大部分支持Column的函数也支持St">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2018-03-23T01:07:24.000Z">
+<meta property="article:modified_time" content="2022-12-03T09:20:44.324Z">
+<meta property="article:author" content="Liam">
+<meta property="article:tag" content="Spark">
+<meta property="article:tag" content="API">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://liam-blog.ml/2018/03/23/spark-sql-functions-api/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://liam-blog.ml/2018/03/23/spark-sql-functions-api/","path":"2018/03/23/spark-sql-functions-api/","title":"Spark API 全集(2):Spark SQL 函数全集"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Spark API 全集(2):Spark SQL 函数全集 | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3LJ1Y8TCD3"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-3LJ1Y8TCD3","only_pageview":false}</script>
+  <script src="/js/third-party/analytics/google-analytics.js"></script>
+
+
+
+
+
+
+  <script async defer data-website-id="" src=""></script>
+
+  <script defer data-domain="" src=""></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="Liam's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Liam's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hi there, 2022!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li><li class="menu-item menu-item-rss"><a href="/atom.xml" rel="section"><i class="fa fa-rss fa-fw"></i>RSS</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Summary"><span class="nav-number">1.</span> <span class="nav-text">Summary</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%81%9A%E5%90%88%E5%87%BD%E6%95%B0"><span class="nav-number">2.</span> <span class="nav-text">聚合函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%9B%86%E5%90%88%E5%87%BD%E6%95%B0"><span class="nav-number">3.</span> <span class="nav-text">集合函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%97%B6%E9%97%B4%E5%87%BD%E6%95%B0"><span class="nav-number">4.</span> <span class="nav-text">时间函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%95%B0%E5%AD%A6%E5%87%BD%E6%95%B0"><span class="nav-number">5.</span> <span class="nav-text">数学函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%B7%B7%E6%9D%82-misc-%E5%87%BD%E6%95%B0"><span class="nav-number">6.</span> <span class="nav-text">混杂(misc)函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%85%B6%E4%BB%96%E9%9D%9E%E8%81%9A%E5%90%88%E5%87%BD%E6%95%B0"><span class="nav-number">7.</span> <span class="nav-text">其他非聚合函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%8E%92%E5%BA%8F%E5%87%BD%E6%95%B0"><span class="nav-number">8.</span> <span class="nav-text">排序函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%87%BD%E6%95%B0"><span class="nav-number">9.</span> <span class="nav-text">字符串函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#UDF%E5%87%BD%E6%95%B0"><span class="nav-number">10.</span> <span class="nav-text">UDF函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%AA%97%E5%8F%A3%E5%87%BD%E6%95%B0"><span class="nav-number">11.</span> <span class="nav-text">窗口函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8F%82%E8%80%83"><span class="nav-number">12.</span> <span class="nav-text">参考</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/images/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2018/03/23/spark-sql-functions-api/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Spark API 全集(2):Spark SQL 函数全集 | Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spark API 全集(2):Spark SQL 函数全集
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2018-03-23 09:07:24" itemprop="dateCreated datePublished" datetime="2018-03-23T09:07:24+08:00">2018-03-23</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-12-03 17:20:44" itemprop="dateModified" datetime="2022-12-03T17:20:44+08:00">2022-12-03</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h1 id="Summary"><a href="#Summary" class="headerlink" title="Summary"></a>Summary</h1><p>org.apache.spark.sql.functions是一个Object，提供了约两百多个函数。</p>
+<p>大部分函数与Hive的差不多。</p>
+<p>除UDF函数，均可在spark-sql中直接使用。</p>
+<p>经过import org.apache.spark.sql.functions._ ，也可以用于Dataframe，Dataset。</p>
+<p>version<br>2.3.0</p>
+<p>大部分支持Column的函数也支持String类型的列名。这些函数的返回类型基本都是Column。</p>
+<p>函数很多，都在下面了。</p>
+<span id="more"></span>
+
+<h1 id="聚合函数"><a href="#聚合函数" class="headerlink" title="聚合函数"></a>聚合函数</h1><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br></pre></td><td class="code"><pre><span class="line">approx_count_distinct</span><br><span class="line">count_distinct近似值</span><br><span class="line"></span><br><span class="line">avg</span><br><span class="line">平均值</span><br><span class="line"></span><br><span class="line">collect_list</span><br><span class="line">聚合指定字段的值到list</span><br><span class="line"></span><br><span class="line">collect_set</span><br><span class="line">聚合指定字段的值到set</span><br><span class="line"></span><br><span class="line">corr</span><br><span class="line">计算两列的<span class="type">Pearson</span>相关系数</span><br><span class="line"></span><br><span class="line">count</span><br><span class="line">计数</span><br><span class="line"></span><br><span class="line">countDistinct</span><br><span class="line">去重计数 <span class="type">SQL</span>中用法</span><br><span class="line">select count(distinct <span class="class"><span class="keyword">class</span>)</span></span><br><span class="line"></span><br><span class="line">covar_pop</span><br><span class="line">总体协方差（population covariance）</span><br><span class="line"></span><br><span class="line">covar_samp</span><br><span class="line">样本协方差（sample covariance）</span><br><span class="line"></span><br><span class="line">first</span><br><span class="line">分组第一个元素</span><br><span class="line"></span><br><span class="line">last</span><br><span class="line">分组最后一个元素</span><br><span class="line"></span><br><span class="line">grouping</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">grouping_id</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">kurtosis</span><br><span class="line"> 计算峰态(kurtosis)值</span><br><span class="line"></span><br><span class="line">skewness</span><br><span class="line"> 计算偏度(skewness)</span><br><span class="line"></span><br><span class="line">max</span><br><span class="line">最大值</span><br><span class="line"></span><br><span class="line">min</span><br><span class="line">最小值</span><br><span class="line"></span><br><span class="line">mean</span><br><span class="line">平均值</span><br><span class="line"></span><br><span class="line">stddev</span><br><span class="line"> 即stddev_samp</span><br><span class="line"></span><br><span class="line">stddev_samp</span><br><span class="line"> 样本标准偏差（sample standard deviation）</span><br><span class="line"></span><br><span class="line">stddev_pop</span><br><span class="line">总体标准偏差（population standard deviation）</span><br><span class="line"></span><br><span class="line">sum</span><br><span class="line">求和</span><br><span class="line"></span><br><span class="line">sumDistinct</span><br><span class="line">非重复值求和 <span class="type">SQL</span>中用法</span><br><span class="line">select sum(distinct <span class="class"><span class="keyword">class</span>)</span></span><br><span class="line"></span><br><span class="line">var_pop</span><br><span class="line">总体方差（population variance）</span><br><span class="line"></span><br><span class="line">var_samp</span><br><span class="line">样本无偏方差（unbiased variance）</span><br><span class="line"></span><br><span class="line">variance</span><br><span class="line">即var_samp</span><br></pre></td></tr></table></figure>
+<h1 id="集合函数"><a href="#集合函数" class="headerlink" title="集合函数"></a>集合函数</h1><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">array_contains(column,value)</span><br><span class="line">检查array类型字段是否包含指定元素</span><br><span class="line"></span><br><span class="line">explode</span><br><span class="line"> 展开array或map为多行</span><br><span class="line"></span><br><span class="line">explode_outer</span><br><span class="line">同explode，但当array或map为空或<span class="literal">null</span>时，会展开为<span class="literal">null</span>。</span><br><span class="line"></span><br><span class="line">posexplode</span><br><span class="line">同explode，带位置索引。</span><br><span class="line"></span><br><span class="line">posexplode_outer</span><br><span class="line">同explode_outer，带位置索引。</span><br><span class="line"></span><br><span class="line">from_json</span><br><span class="line">解析<span class="type">JSON</span>字符串为<span class="type">StructType</span> or <span class="type">ArrayType</span>，有多种参数形式，详见文档。</span><br><span class="line"></span><br><span class="line">to_json</span><br><span class="line">转为json字符串，支持<span class="type">StructType</span>, <span class="type">ArrayType</span> of <span class="type">StructTypes</span>, a <span class="type">MapType</span> or <span class="type">ArrayType</span> of <span class="type">MapTypes</span>。</span><br><span class="line"></span><br><span class="line">get_json_object(column,path)</span><br><span class="line">获取指定json路径的json对象字符串。</span><br><span class="line">select get_json_object(&#x27;&#123;<span class="string">&quot;a&quot;</span><span class="number">1</span>,<span class="string">&quot;b&quot;</span>:<span class="number">2</span>&#125;&#x27;,&#x27;$.a&#x27;);</span><br><span class="line">[<span class="type">JSON</span> <span class="type">Path</span>介绍](http:<span class="comment">//blog.csdn.net/koflance/article/details/63262484)</span></span><br><span class="line"></span><br><span class="line">json_tuple(column,fields)</span><br><span class="line">获取json中指定字段值。select json_tuple(&#x27;&#123;<span class="string">&quot;a&quot;</span>:<span class="number">1</span>,<span class="string">&quot;b&quot;</span>:<span class="number">2</span>&#125;&#x27;,&#x27;a&#x27;,&#x27;b&#x27;);</span><br><span class="line"></span><br><span class="line">map_keys</span><br><span class="line">返回map的键组成的array</span><br><span class="line"></span><br><span class="line">map_values</span><br><span class="line">返回map的值组成的array</span><br><span class="line"></span><br><span class="line">size</span><br><span class="line">array or map的长度</span><br><span class="line"></span><br><span class="line">sort_array(e: <span class="type">Column</span>, asc: <span class="type">Boolean</span>)</span><br><span class="line">将array中元素排序（自然排序），默认asc。</span><br></pre></td></tr></table></figure>
+<h1 id="时间函数"><a href="#时间函数" class="headerlink" title="时间函数"></a>时间函数</h1><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br></pre></td><td class="code"><pre><span class="line">add_months(startDate: <span class="type">Column</span>, numMonths: <span class="type">Int</span>)</span><br><span class="line">指定日期添加n月</span><br><span class="line"></span><br><span class="line">date_add(start: <span class="type">Column</span>, days: <span class="type">Int</span>)</span><br><span class="line">指定日期之后n天 e.g. select date_add(&#x27;<span class="number">2018</span><span class="number">-01</span><span class="number">-01</span>&#x27;,<span class="number">3</span>)</span><br><span class="line"></span><br><span class="line">date_sub(start: <span class="type">Column</span>, days: <span class="type">Int</span>)</span><br><span class="line">指定日期之前n天</span><br><span class="line"></span><br><span class="line">datediff(end: <span class="type">Column</span>, start: <span class="type">Column</span>)</span><br><span class="line">两日期间隔天数</span><br><span class="line"></span><br><span class="line">current_date()</span><br><span class="line">当前日期</span><br><span class="line"></span><br><span class="line">current_timestamp()</span><br><span class="line">当前时间戳，<span class="type">TimestampType</span>类型</span><br><span class="line"></span><br><span class="line">date_format(dateExpr: <span class="type">Column</span>, format: <span class="type">String</span>)</span><br><span class="line">日期格式化</span><br><span class="line"></span><br><span class="line">dayofmonth(e: <span class="type">Column</span>)</span><br><span class="line">日期在一月中的天数，支持 date/timestamp/string</span><br><span class="line"></span><br><span class="line">dayofyear(e: <span class="type">Column</span>)</span><br><span class="line">日期在一年中的天数， 支持 date/timestamp/string</span><br><span class="line"></span><br><span class="line">weekofyear(e: <span class="type">Column</span>)</span><br><span class="line">日期在一年中的周数， 支持 date/timestamp/string</span><br><span class="line"></span><br><span class="line">from_unixtime(ut: <span class="type">Column</span>, f: <span class="type">String</span>)</span><br><span class="line">时间戳转字符串格式</span><br><span class="line"></span><br><span class="line">from_utc_timestamp(ts: <span class="type">Column</span>, tz: <span class="type">String</span>)</span><br><span class="line">时间戳转指定时区时间戳</span><br><span class="line"></span><br><span class="line">to_utc_timestamp(ts: <span class="type">Column</span>, tz: <span class="type">String</span>)</span><br><span class="line">指定时区时间戳转<span class="type">UTF</span>时间戳</span><br><span class="line"></span><br><span class="line">hour(e: <span class="type">Column</span>)</span><br><span class="line">提取小时值</span><br><span class="line"></span><br><span class="line">minute(e: <span class="type">Column</span>)</span><br><span class="line">提取分钟值</span><br><span class="line"></span><br><span class="line">month(e: <span class="type">Column</span>)</span><br><span class="line">提取月份值</span><br><span class="line"></span><br><span class="line">quarter(e: <span class="type">Column</span>)</span><br><span class="line">提取季度</span><br><span class="line"></span><br><span class="line">second(e: <span class="type">Column</span>)</span><br><span class="line">提取秒</span><br><span class="line"></span><br><span class="line">year(e: <span class="type">Column</span>):提取年</span><br><span class="line"></span><br><span class="line">last_day(e: <span class="type">Column</span>)</span><br><span class="line">指定日期的月末日期</span><br><span class="line"></span><br><span class="line">months_between(date1: <span class="type">Column</span>, date2: <span class="type">Column</span>)</span><br><span class="line">计算两日期差几个月</span><br><span class="line"></span><br><span class="line">next_day(date: <span class="type">Column</span>, dayOfWeek: <span class="type">String</span>)</span><br><span class="line">计算指定日期之后的下一个周一、二...，dayOfWeek区分大小写，只接受 <span class="string">&quot;Mon&quot;</span>, <span class="string">&quot;Tue&quot;</span>, <span class="string">&quot;Wed&quot;</span>, <span class="string">&quot;Thu&quot;</span>, <span class="string">&quot;Fri&quot;</span>, <span class="string">&quot;Sat&quot;</span>, <span class="string">&quot;Sun&quot;</span>。</span><br><span class="line"></span><br><span class="line">to_date(e: <span class="type">Column</span>)</span><br><span class="line">字段类型转为<span class="type">DateType</span></span><br><span class="line"></span><br><span class="line">trunc(date: <span class="type">Column</span>, format: <span class="type">String</span>)</span><br><span class="line">日期截断</span><br><span class="line"></span><br><span class="line">unix_timestamp(s: <span class="type">Column</span>, p: <span class="type">String</span>)</span><br><span class="line">指定格式的时间字符串转时间戳</span><br><span class="line"></span><br><span class="line">unix_timestamp(s: <span class="type">Column</span>)</span><br><span class="line">同上，默认格式为 yyyy-<span class="type">MM</span>-dd <span class="type">HH</span>:mm:ss</span><br><span class="line"></span><br><span class="line">unix_timestamp():当前时间戳(秒),底层实现为unix_timestamp(current_timestamp(), yyyy-<span class="type">MM</span>-dd <span class="type">HH</span>:mm:ss)</span><br><span class="line"></span><br><span class="line">window(timeColumn: <span class="type">Column</span>, windowDuration: <span class="type">String</span>, slideDuration: <span class="type">String</span>, startTime: <span class="type">String</span>)</span><br><span class="line">时间窗口函数，将指定时间(<span class="type">TimestampType</span>)划分到窗口</span><br></pre></td></tr></table></figure>
+
+<h1 id="数学函数"><a href="#数学函数" class="headerlink" title="数学函数"></a>数学函数</h1><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line">cos,sin,tan</span><br><span class="line">计算角度的余弦，正弦。。。</span><br><span class="line"></span><br><span class="line">sinh,tanh,cosh</span><br><span class="line">计算双曲正弦，正切，。。</span><br><span class="line"></span><br><span class="line">acos,asin,atan,atan2</span><br><span class="line">计算余弦/正弦值对应的角度</span><br><span class="line"></span><br><span class="line">bin</span><br><span class="line">将long类型转为对应二进制数值的字符串<span class="type">For</span> example, bin(<span class="string">&quot;12&quot;</span>) returns <span class="string">&quot;1100&quot;</span>.</span><br><span class="line"></span><br><span class="line">bround</span><br><span class="line">舍入，使用<span class="type">Decimal</span>的<span class="type">HALF_EVEN</span>模式，v&gt;<span class="number">0.5</span>向上舍入，v&lt; <span class="number">0.5</span>向下舍入，v0<span class="number">.5</span>向最近的偶数舍入。</span><br><span class="line"></span><br><span class="line">round(e: <span class="type">Column</span>, scale: <span class="type">Int</span>)</span><br><span class="line"><span class="type">HALF_UP</span>模式舍入到scale为小数点。v&gt;=<span class="number">0.5</span>向上舍入，v&lt; <span class="number">0.5</span>向下舍入,即四舍五入。</span><br><span class="line"></span><br><span class="line">ceil</span><br><span class="line">向上舍入</span><br><span class="line"></span><br><span class="line">floor</span><br><span class="line">向下舍入</span><br><span class="line"></span><br><span class="line">cbrt</span><br><span class="line"><span class="type">Computes</span> the cube-root of the <span class="keyword">given</span> value.</span><br><span class="line"></span><br><span class="line">conv(num:<span class="type">Column</span>, fromBase: <span class="type">Int</span>, toBase: <span class="type">Int</span>)</span><br><span class="line"> 转换数值（字符串）的进制</span><br><span class="line"></span><br><span class="line">log(base: <span class="type">Double</span>, a: <span class="type">Column</span>):$log_&#123;base&#125;(a)$</span><br><span class="line"></span><br><span class="line">log(a: <span class="type">Column</span>):$log_e(a)$</span><br><span class="line"></span><br><span class="line">log10(a: <span class="type">Column</span>):$log_&#123;<span class="number">10</span>&#125;(a)$</span><br><span class="line"></span><br><span class="line">log2(a: <span class="type">Column</span>):$log_&#123;<span class="number">2</span>&#125;(a)$</span><br><span class="line"></span><br><span class="line">log1p(a: <span class="type">Column</span>):$log_&#123;e&#125;(a+<span class="number">1</span>)$</span><br><span class="line"></span><br><span class="line">pmod(dividend: <span class="type">Column</span>, divisor: <span class="type">Column</span>):<span class="type">Returns</span> the positive value of dividend mod divisor.</span><br><span class="line"></span><br><span class="line">pow(l: <span class="type">Double</span>, r: <span class="type">Column</span>):$r^l$ 注意r是列</span><br><span class="line"></span><br><span class="line">pow(l: <span class="type">Column</span>, r: <span class="type">Double</span>):$r^l$ 注意l是列</span><br><span class="line"></span><br><span class="line">pow(l: <span class="type">Column</span>, r: <span class="type">Column</span>):$r^l$ 注意r,l都是列</span><br><span class="line"></span><br><span class="line">radians(e: <span class="type">Column</span>):角度转弧度</span><br><span class="line"></span><br><span class="line">rint(e: <span class="type">Column</span>):<span class="type">Returns</span> the double value that is closest in value to the argument and is equal to a mathematical integer.</span><br><span class="line"></span><br><span class="line">shiftLeft(e: <span class="type">Column</span>, numBits: <span class="type">Int</span>):向左位移</span><br><span class="line"></span><br><span class="line">shiftRight(e: <span class="type">Column</span>, numBits: <span class="type">Int</span>):向右位移</span><br><span class="line"></span><br><span class="line">shiftRightUnsigned(e: <span class="type">Column</span>, numBits: <span class="type">Int</span>):向右位移（无符号位）</span><br><span class="line"></span><br><span class="line">signum(e: <span class="type">Column</span>):返回数值正负符号</span><br><span class="line"></span><br><span class="line">sqrt(e: <span class="type">Column</span>):平方根</span><br><span class="line"></span><br><span class="line">hex(column: <span class="type">Column</span>):转十六进制</span><br><span class="line"></span><br><span class="line">unhex(column: <span class="type">Column</span>):逆转十六进制</span><br></pre></td></tr></table></figure>
+
+<h1 id="混杂-misc-函数"><a href="#混杂-misc-函数" class="headerlink" title="混杂(misc)函数"></a>混杂(misc)函数</h1><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">crc32(e: <span class="type">Column</span>):计算<span class="type">CRC32</span>,返回bigint</span><br><span class="line"></span><br><span class="line">hash(cols: <span class="type">Column</span>*):计算 hash code，返回int</span><br><span class="line"></span><br><span class="line">md5(e: <span class="type">Column</span>):计算<span class="type">MD5</span>摘要，返回<span class="number">32</span>位，<span class="number">16</span>进制字符串</span><br><span class="line"></span><br><span class="line">sha1(e: <span class="type">Column</span>):计算<span class="type">SHA</span><span class="number">-1</span>摘要，返回<span class="number">40</span>位，<span class="number">16</span>进制字符串</span><br><span class="line"></span><br><span class="line">sha2(e: <span class="type">Column</span>, numBits: <span class="type">Int</span>):计算<span class="type">SHA</span><span class="number">-1</span>摘要，返回numBits位，<span class="number">16</span>进制字符串。numBits支持<span class="number">224</span>, <span class="number">256</span>, <span class="number">384</span>, or <span class="number">512.</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="其他非聚合函数"><a href="#其他非聚合函数" class="headerlink" title="其他非聚合函数"></a>其他非聚合函数</h1><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br></pre></td><td class="code"><pre><span class="line">abs(e: <span class="type">Column</span>)</span><br><span class="line">绝对值</span><br><span class="line"></span><br><span class="line">array(cols: <span class="type">Column</span>*)</span><br><span class="line">多列合并为array，cols必须为同类型</span><br><span class="line"></span><br><span class="line">map(cols: <span class="type">Column</span>*):</span><br><span class="line">将多列组织为map，输入列必须为（key,value)形式，各列的key/value分别为同一类型。</span><br><span class="line"></span><br><span class="line">bitwiseNOT(e: <span class="type">Column</span>):</span><br><span class="line"><span class="type">Computes</span> bitwise <span class="type">NOT</span>.</span><br><span class="line"></span><br><span class="line">broadcast[<span class="type">T</span>](df: <span class="type">Dataset</span>[<span class="type">T</span>]): <span class="type">Dataset</span>[<span class="type">T</span>]:</span><br><span class="line">将df变量广播，用于实现broadcast join。如left.join(broadcast(right), <span class="string">&quot;joinKey&quot;</span>)</span><br><span class="line"></span><br><span class="line">coalesce(e: <span class="type">Column</span>*):</span><br><span class="line">返回第一个非空值</span><br><span class="line"></span><br><span class="line">col(colName: <span class="type">String</span>):</span><br><span class="line">返回colName对应的<span class="type">Column</span></span><br><span class="line"></span><br><span class="line">column(colName: <span class="type">String</span>):</span><br><span class="line">col函数的别名</span><br><span class="line"></span><br><span class="line">expr(expr: <span class="type">String</span>):</span><br><span class="line">解析expr表达式，将返回值存于<span class="type">Column</span>，并返回这个<span class="type">Column</span>。</span><br><span class="line"></span><br><span class="line">greatest(exprs: <span class="type">Column</span>*):</span><br><span class="line">返回多列中的最大值，跳过<span class="type">Null</span></span><br><span class="line"></span><br><span class="line">least(exprs: <span class="type">Column</span>*):</span><br><span class="line">返回多列中的最小值，跳过<span class="type">Null</span></span><br><span class="line"></span><br><span class="line">input_file_name():返</span><br><span class="line">回当前任务的文件名 ？？</span><br><span class="line"></span><br><span class="line">isnan(e: <span class="type">Column</span>):</span><br><span class="line">检查是否<span class="type">NaN</span>（非数值）</span><br><span class="line"></span><br><span class="line">isnull(e: <span class="type">Column</span>):</span><br><span class="line">检查是否为<span class="type">Null</span></span><br><span class="line"></span><br><span class="line">lit(literal: <span class="type">Any</span>):</span><br><span class="line">将字面量(literal)创建一个<span class="type">Column</span></span><br><span class="line"></span><br><span class="line">typedLit[<span class="type">T</span>](literal: <span class="type">T</span>)(<span class="keyword">implicit</span> arg0: scala.reflect.api.<span class="type">JavaUniverse</span>.<span class="type">TypeTag</span>[<span class="type">T</span>]):</span><br><span class="line">将字面量(literal)创建一个<span class="type">Column</span>，literal支持 scala types e.g.: <span class="type">List</span>, <span class="type">Seq</span> and <span class="type">Map</span>.</span><br><span class="line"></span><br><span class="line">monotonically_increasing_id():</span><br><span class="line">返回单调递增唯一<span class="type">ID</span>，但不同分区的<span class="type">ID</span>不连续。<span class="type">ID</span>为<span class="number">64</span>位整型。</span><br><span class="line"></span><br><span class="line">nanvl(col1: <span class="type">Column</span>, col2: <span class="type">Column</span>):</span><br><span class="line">col1为<span class="type">NaN</span>则返回col2</span><br><span class="line"></span><br><span class="line">negate(e: <span class="type">Column</span>):</span><br><span class="line">负数，同df.select( -df(<span class="string">&quot;amount&quot;</span>) )</span><br><span class="line"></span><br><span class="line">not(e: <span class="type">Column</span>):</span><br><span class="line">取反，同df.filter( !df(<span class="string">&quot;isActive&quot;</span>) )</span><br><span class="line"></span><br><span class="line">rand():</span><br><span class="line">随机数[<span class="number">0.0</span>, <span class="number">1.0</span>]</span><br><span class="line"></span><br><span class="line">rand(seed: <span class="type">Long</span>):</span><br><span class="line">随机数[<span class="number">0.0</span>, <span class="number">1.0</span>]，使用seed种子</span><br><span class="line"></span><br><span class="line">randn():</span><br><span class="line">随机数，从正态分布取</span><br><span class="line"></span><br><span class="line">randn(seed: <span class="type">Long</span>):</span><br><span class="line">同上</span><br><span class="line"></span><br><span class="line">spark_partition_id():</span><br><span class="line">返回partition <span class="type">ID</span></span><br><span class="line"></span><br><span class="line">struct(cols: <span class="type">Column</span>*):</span><br><span class="line">多列组合成新的struct column ？？</span><br><span class="line"></span><br><span class="line">when(condition: <span class="type">Column</span>, value: <span class="type">Any</span>):</span><br><span class="line">当condition为<span class="literal">true</span>返回value，如</span><br><span class="line">people.select(when(people(<span class="string">&quot;gender&quot;</span>) === <span class="string">&quot;male&quot;</span>, <span class="number">0</span>)</span><br><span class="line">  .when(people(<span class="string">&quot;gender&quot;</span>) === <span class="string">&quot;female&quot;</span>, <span class="number">1</span>)</span><br><span class="line">  .otherwise(<span class="number">2</span>))</span><br><span class="line">如果没有otherwise且condition全部没命中，则返回<span class="literal">null</span>.</span><br></pre></td></tr></table></figure>
+<h1 id="排序函数"><a href="#排序函数" class="headerlink" title="排序函数"></a>排序函数</h1><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">asc(columnName: <span class="type">String</span>):正序</span><br><span class="line"></span><br><span class="line">asc_nulls_first(columnName: <span class="type">String</span>):正序，<span class="literal">null</span>排最前</span><br><span class="line"></span><br><span class="line">asc_nulls_last(columnName: <span class="type">String</span>):正序，<span class="literal">null</span>排最后</span><br><span class="line"></span><br><span class="line">e.g.</span><br><span class="line">df.sort(asc(<span class="string">&quot;dept&quot;</span>), desc(<span class="string">&quot;age&quot;</span>))</span><br><span class="line"></span><br><span class="line">对应有desc函数</span><br><span class="line"> desc,desc_nulls_first,desc_nulls_last</span><br></pre></td></tr></table></figure>
+<h1 id="字符串函数"><a href="#字符串函数" class="headerlink" title="字符串函数"></a>字符串函数</h1><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">ascii(e: <span class="type">Column</span>): 计算第一个字符的ascii码</span><br><span class="line"></span><br><span class="line">base64(e: <span class="type">Column</span>): base64转码</span><br><span class="line"></span><br><span class="line">unbase64(e: <span class="type">Column</span>): base64解码</span><br><span class="line"></span><br><span class="line">concat(exprs: <span class="type">Column</span>*):连接多列字符串</span><br><span class="line"></span><br><span class="line">concat_ws(sep: <span class="type">String</span>, exprs: <span class="type">Column</span>*):使用sep作为分隔符连接多列字符串</span><br><span class="line"></span><br><span class="line">decode(value: <span class="type">Column</span>, charset: <span class="type">String</span>): 解码</span><br><span class="line"></span><br><span class="line">encode(value: <span class="type">Column</span>, charset: <span class="type">String</span>): 转码，charset支持 &#x27;<span class="type">US</span>-<span class="type">ASCII</span>&#x27;, &#x27;<span class="type">ISO</span><span class="number">-8859</span><span class="number">-1</span>&#x27;, &#x27;<span class="type">UTF</span><span class="number">-8</span>&#x27;, &#x27;<span class="type">UTF</span><span class="number">-16</span>BE&#x27;, &#x27;<span class="type">UTF</span><span class="number">-16</span>LE&#x27;, &#x27;<span class="type">UTF</span><span class="number">-16</span>&#x27;。</span><br><span class="line"></span><br><span class="line">format_number(x: <span class="type">Column</span>, d: <span class="type">Int</span>):格式化&#x27;#,###,###.##&#x27;形式的字符串</span><br><span class="line"></span><br><span class="line">format_string(format: <span class="type">String</span>, arguments: <span class="type">Column</span>*): 将arguments按format格式化，格式为printf-style。</span><br><span class="line"></span><br><span class="line">initcap(e: <span class="type">Column</span>): 单词首字母大写</span><br><span class="line"></span><br><span class="line">lower(e: <span class="type">Column</span>): 转小写</span><br><span class="line"></span><br><span class="line">upper(e: <span class="type">Column</span>): 转大写</span><br><span class="line"></span><br><span class="line">instr(str: <span class="type">Column</span>, substring: <span class="type">String</span>): substring在str中第一次出现的位置</span><br><span class="line"></span><br><span class="line">length(e: <span class="type">Column</span>): 字符串长度</span><br><span class="line"></span><br><span class="line">levenshtein(l: <span class="type">Column</span>, r: <span class="type">Column</span>): 计算两个字符串之间的编辑距离（<span class="type">Levenshtein</span> distance）</span><br><span class="line"></span><br><span class="line">locate(substr: <span class="type">String</span>, str: <span class="type">Column</span>): substring在str中第一次出现的位置，位置编号从<span class="number">1</span>开始，<span class="number">0</span>表示未找到。</span><br><span class="line"></span><br><span class="line">locate(substr: <span class="type">String</span>, str: <span class="type">Column</span>, pos: <span class="type">Int</span>): 同上，但从pos位置后查找。</span><br><span class="line"></span><br><span class="line">lpad(str: <span class="type">Column</span>, len: <span class="type">Int</span>, pad: <span class="type">String</span>):字符串左填充。用pad字符填充str的字符串至len长度。有对应的rpad，右填充。</span><br><span class="line"></span><br><span class="line">ltrim(e: <span class="type">Column</span>):剪掉左边的空格、空白字符，对应有rtrim.</span><br><span class="line"></span><br><span class="line">ltrim(e: <span class="type">Column</span>, trimString: <span class="type">String</span>):剪掉左边的指定字符,对应有rtrim.</span><br><span class="line"></span><br><span class="line">trim(e: <span class="type">Column</span>, trimString: <span class="type">String</span>):剪掉左右两边的指定字符</span><br><span class="line"></span><br><span class="line">trim(e: <span class="type">Column</span>):剪掉左右两边的空格、空白字符</span><br><span class="line"></span><br><span class="line">regexp_extract(e: <span class="type">Column</span>, exp: <span class="type">String</span>, groupIdx: <span class="type">Int</span>): 正则提取匹配的组</span><br><span class="line"></span><br><span class="line">regexp_replace(e: <span class="type">Column</span>, pattern: <span class="type">Column</span>, replacement: <span class="type">Column</span>): 正则替换匹配的部分，这里参数为列。</span><br><span class="line"></span><br><span class="line">regexp_replace(e: <span class="type">Column</span>, pattern: <span class="type">String</span>, replacement: <span class="type">String</span>): 正则替换匹配的部分</span><br><span class="line"></span><br><span class="line">repeat(str: <span class="type">Column</span>, n: <span class="type">Int</span>):将str重复n次返回</span><br><span class="line"></span><br><span class="line">reverse(str: <span class="type">Column</span>): 将str反转</span><br><span class="line"></span><br><span class="line">soundex(e: <span class="type">Column</span>): 计算桑迪克斯代码（soundex code）<span class="type">PS</span>:用于按英语发音来索引姓名,发音相同但拼写不同的单词，会映射成同一个码。</span><br><span class="line"></span><br><span class="line">split(str: <span class="type">Column</span>, pattern: <span class="type">String</span>): 用pattern分割str</span><br><span class="line"></span><br><span class="line">substring(str: <span class="type">Column</span>, pos: <span class="type">Int</span>, len: <span class="type">Int</span>): 在str上截取从pos位置开始长度为len的子字符串。</span><br><span class="line"></span><br><span class="line">substring_index(str: <span class="type">Column</span>, delim: <span class="type">String</span>, count: <span class="type">Int</span>):<span class="type">Returns</span> the substring from string str before count occurrences of the delimiter delim. <span class="type">If</span> count is positive, everything the left of the <span class="keyword">final</span> delimiter (counting from left) is returned. <span class="type">If</span> count is negative, every to the right of the <span class="keyword">final</span> delimiter (counting from the right) is returned. substring_index performs a <span class="keyword">case</span>-sensitive <span class="keyword">match</span> when searching <span class="keyword">for</span> delim.</span><br><span class="line"></span><br><span class="line">translate(src: <span class="type">Column</span>, matchingString: <span class="type">String</span>, replaceString: <span class="type">String</span>):把src中的matchingString全换成replaceString。</span><br></pre></td></tr></table></figure>
+
+<h1 id="UDF函数"><a href="#UDF函数" class="headerlink" title="UDF函数"></a>UDF函数</h1><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">user-defined function.</span><br><span class="line"></span><br><span class="line">callUDF(udfName: <span class="type">String</span>, cols: <span class="type">Column</span>*): 调用<span class="type">UDF</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.sql._</span><br><span class="line"></span><br><span class="line"><span class="keyword">val</span> df = <span class="type">Seq</span>((<span class="string">&quot;id1&quot;</span>, <span class="number">1</span>), (<span class="string">&quot;id2&quot;</span>, <span class="number">4</span>), (<span class="string">&quot;id3&quot;</span>, <span class="number">5</span>)).toDF(<span class="string">&quot;id&quot;</span>, <span class="string">&quot;value&quot;</span>)</span><br><span class="line"><span class="keyword">val</span> spark = df.sparkSession</span><br><span class="line">spark.udf.register(<span class="string">&quot;simpleUDF&quot;</span>, (v: <span class="type">Int</span>) =&gt; v * v)</span><br><span class="line">df.select($<span class="string">&quot;id&quot;</span>, callUDF(<span class="string">&quot;simpleUDF&quot;</span>, $<span class="string">&quot;value&quot;</span>))</span><br><span class="line"></span><br><span class="line">udf: 定义<span class="type">UDF</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h1 id="窗口函数"><a href="#窗口函数" class="headerlink" title="窗口函数"></a>窗口函数</h1><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">cume_dist(): cumulative distribution of values within a window partition</span><br><span class="line"></span><br><span class="line">currentRow(): returns the special frame boundary that represents the current row in the window partition.</span><br><span class="line"></span><br><span class="line">rank():排名，返回数据项在分组中的排名，排名相等会在名次中留下空位 <span class="number">1</span>,<span class="number">2</span>,<span class="number">2</span>,<span class="number">4</span>。</span><br><span class="line"></span><br><span class="line">dense_rank(): 排名，返回数据项在分组中的排名，排名相等会在名次中不会留下空位 <span class="number">1</span>,<span class="number">2</span>,<span class="number">2</span>,<span class="number">3</span>。</span><br><span class="line"></span><br><span class="line">row_number():行号，为每条记录返回一个数字 <span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span></span><br><span class="line"></span><br><span class="line">percent_rank():returns the relative rank (i.e. percentile) of rows within a window partition.</span><br><span class="line"></span><br><span class="line">lag(e: <span class="type">Column</span>, offset: <span class="type">Int</span>, defaultValue: <span class="type">Any</span>): offset rows before the current row</span><br><span class="line"></span><br><span class="line">lead(e: <span class="type">Column</span>, offset: <span class="type">Int</span>, defaultValue: <span class="type">Any</span>): returns the value that is offset rows after the current row</span><br><span class="line"></span><br><span class="line">ntile(n: <span class="type">Int</span>): returns the ntile group id (from <span class="number">1</span> to n inclusive) in an ordered window partition.</span><br><span class="line"></span><br><span class="line">unboundedFollowing():returns the special frame boundary that represents the last row in the window partition.</span><br></pre></td></tr></table></figure>
+
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
+<li><a target="_blank" rel="noopener" href="http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.functions$">Spark API</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="followme">
+  <span>Welcome to my other publishing channels</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Spark/" rel="tag"># Spark</a>
+              <a href="/tags/API/" rel="tag"># API</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2018/03/22/spark-sql-dataset-api/" rel="prev" title="Spark API 全集(1):Spark SQL Dataset & DataFrame API">
+                  <i class="fa fa-chevron-left"></i> Spark API 全集(1):Spark SQL Dataset & DataFrame API
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2018/03/26/es-guide-note/" rel="next" title="[读书笔记] ES权威指南">
+                  [读书笔记] ES权威指南 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

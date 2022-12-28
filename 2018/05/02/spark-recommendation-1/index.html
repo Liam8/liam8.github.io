@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"liam-blog.ml","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="个性化推荐系统简介个性化推荐系统的定义在 1997 年由 Resnick 和 Varian 提出:利用互联网向用户提供信 息和建议，帮助用户选择产品，或模拟售货员帮助用户完成购买行为的系统 。通常推荐 由三个要素组成:推荐算法、用户、候选推荐项目。简单来说，一次推荐过程就是推荐算 法从候选推荐项目中挑出某些项目给用户。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于Spark实现推荐算法-1:推荐算法简介">
+<meta property="og:url" content="https://liam-blog.ml/2018/05/02/spark-recommendation-1/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="个性化推荐系统简介个性化推荐系统的定义在 1997 年由 Resnick 和 Varian 提出:利用互联网向用户提供信 息和建议，帮助用户选择产品，或模拟售货员帮助用户完成购买行为的系统 。通常推荐 由三个要素组成:推荐算法、用户、候选推荐项目。简单来说，一次推荐过程就是推荐算 法从候选推荐项目中挑出某些项目给用户。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://orfd3hw7v.bkt.clouddn.com/601d55beb52c4fcb9e1d1549cf0a8438.png-liam">
+<meta property="article:published_time" content="2018-05-02T09:25:52.000Z">
+<meta property="article:modified_time" content="2022-12-03T09:20:44.359Z">
+<meta property="article:author" content="Liam">
+<meta property="article:tag" content="Spark">
+<meta property="article:tag" content="algorithm">
+<meta property="article:tag" content="recommendation">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://orfd3hw7v.bkt.clouddn.com/601d55beb52c4fcb9e1d1549cf0a8438.png-liam">
+
+
+<link rel="canonical" href="https://liam-blog.ml/2018/05/02/spark-recommendation-1/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://liam-blog.ml/2018/05/02/spark-recommendation-1/","path":"2018/05/02/spark-recommendation-1/","title":"基于Spark实现推荐算法-1:推荐算法简介"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>基于Spark实现推荐算法-1:推荐算法简介 | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3LJ1Y8TCD3"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-3LJ1Y8TCD3","only_pageview":false}</script>
+  <script src="/js/third-party/analytics/google-analytics.js"></script>
+
+
+
+
+
+
+  <script async defer data-website-id="" src=""></script>
+
+  <script defer data-domain="" src=""></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="Liam's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Liam's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hi there, 2022!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li><li class="menu-item menu-item-rss"><a href="/atom.xml" rel="section"><i class="fa fa-rss fa-fw"></i>RSS</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%AA%E6%80%A7%E5%8C%96%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">个性化推荐系统简介</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%8E%A8%E8%8D%90%E7%AE%97%E6%B3%95%E5%88%86%E7%B1%BB"><span class="nav-number">2.</span> <span class="nav-text">推荐算法分类</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8E%E5%86%85%E5%AE%B9%E7%9A%84%E6%8E%A8%E8%8D%90"><span class="nav-number">2.1.</span> <span class="nav-text">基于内容的推荐</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4%E6%8E%A8%E8%8D%90"><span class="nav-number">2.2.</span> <span class="nav-text">协同过滤推荐</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8E%E8%AE%B0%E5%BF%86%E7%9A%84%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4"><span class="nav-number">2.2.1.</span> <span class="nav-text">基于记忆的协同过滤</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8E%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4"><span class="nav-number">2.2.2.</span> <span class="nav-text">基于模型的协同过滤</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8E%E7%A4%BE%E4%BA%A4%E7%BD%91%E7%BB%9C%E5%85%B3%E7%B3%BB%E7%9A%84%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4"><span class="nav-number">2.2.3.</span> <span class="nav-text">基于社交网络关系的协同过滤</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B7%B7%E5%90%88%E5%9E%8B%E6%8E%A8%E8%8D%90"><span class="nav-number">2.3.</span> <span class="nav-text">混合型推荐</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/images/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2018/05/02/spark-recommendation-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="基于Spark实现推荐算法-1:推荐算法简介 | Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          基于Spark实现推荐算法-1:推荐算法简介
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2018-05-02 17:25:52" itemprop="dateCreated datePublished" datetime="2018-05-02T17:25:52+08:00">2018-05-02</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-12-03 17:20:44" itemprop="dateModified" datetime="2022-12-03T17:20:44+08:00">2022-12-03</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h1 id="个性化推荐系统简介"><a href="#个性化推荐系统简介" class="headerlink" title="个性化推荐系统简介"></a>个性化推荐系统简介</h1><p>个性化推荐系统的定义在 1997 年由 Resnick 和 Varian 提出:利用互联网向用户提供信 息和建议，帮助用户选择产品，或模拟售货员帮助用户完成购买行为的系统 。通常推荐 由三个要素组成:推荐算法、用户、候选推荐项目。简单来说，一次推荐过程就是推荐算 法从候选推荐项目中挑出某些项目给用户。</p>
+<span id="more"></span>
+
+<p>目前个性化推荐系统已经在电子商务、视频、音乐、新闻、博客等领域得到了广泛应 用。通常这些领域的网站和应用会推荐若干商品或者作品给用户，这些推荐项目通常以“猜 你喜欢”、“购买此商品的顾客也同时购买”、“相似的商品”等形式出现，所推荐的物品便 是推荐系统通过推荐算法从海量物品中挑选出的。由于推荐系统会根据用户的历史行为数 据给出因人而异的推荐结果，所以称之为个性化推荐。</p>
+<p>一套完整的个性化推荐系统通常包括用户信息收集、推荐模型计算、推荐结果展示三 个部分。个性化推荐系统首先收集用户的网络操作行为——如浏览、评分、购买等，将这 些行为数据存储到数据仓库中。然后通过机器学习、数据挖掘等相关技术来对这些数据进 行分析，更进一步可以从这些历史数据中学习用户的兴趣爱好，运行推荐算法生成推荐模 型。有了推荐模型，便可以为用户提供个性化的推荐服务，实现主动推荐的目的。个性化 推荐技术可以充分提高信息系统或者站点的服务质量和使用效率，从而吸引更多的用户 。</p>
+<p>个性化推荐系统的输入数据可以有多种来源途径，通常分为显示输入和隐式输入两种 类型。显示输入是指用户明确表达喜好的行为，例如给电影评分、给微博点赞、购物后给 予好评或差评等。隐式输入则一般是非特意的行为，如浏览商品详情页面、查看电影评价、 搜索关键词等，这些行为并不代表用户喜欢或讨厌某个物品，但是推荐系统能够从中挖掘 出用户的兴趣信息。</p>
+<p>个性化推荐系统的输出也是多样化的，有各种各样的形式。最常见的是推荐列表形式，<br>如亚马逊等电子商务网站的推荐商品列表、YouTube 等视频网站的推荐影片列表、微博等 社交网站的推荐关注用户等。这类是最直接的推荐形式，明确告诉了用户这些是推荐结果， 属于显示的推荐。另一类形式是比较隐式的推荐:购物网站在关键词搜索结果列表中加入 推荐的结果;新闻网站根据推荐算法优化文章的排序;网络问答社区把用户可能感兴趣的 话题优先展示。这些推荐系统融入到了传统的系统模块中，起到提升原有系统功能的效果。</p>
+<h1 id="推荐算法分类"><a href="#推荐算法分类" class="headerlink" title="推荐算法分类"></a>推荐算法分类</h1><p>推荐算法是推荐系统的核心，直接决定着推荐系统的性能和效果。依据推荐方法的不 同，通常推荐算法可以分为如下几大类:基于内容的推荐(Content-Based Recommendation)， 协同过滤推荐 (Collaborative Filtering Recommendation) ， 混 合 型 推 荐 (Hybrid Recommendation) 。</p>
+<p><img src="http://orfd3hw7v.bkt.clouddn.com/601d55beb52c4fcb9e1d1549cf0a8438.png-liam" alt="推荐算法分类"></p>
+<h2 id="基于内容的推荐"><a href="#基于内容的推荐" class="headerlink" title="基于内容的推荐"></a>基于内容的推荐</h2><p>  基于内容的推荐是用项目内容或特征来定义所要推荐的项目或对象，然后系统基于用户评价对象的特征学习用户的兴趣，依据用户资料与待预测项目的匹配程度进行推荐。项目或对象的特征通常是文本内容，比如标题、名称、标签及该物品的其他元数据。基于内容的推荐系统不可避免地受到有限的特征信息获取技术的约束，根据推荐对象的不同，可能会要用到文本挖掘技术、图片识别技术、视频挖掘技术等。特别是自动提取多媒体数据内容特征的相关技术还不是很成熟，导致基于内容的推荐算法在这方面的相关应用受到了很大限制。</p>
+<h2 id="协同过滤推荐"><a href="#协同过滤推荐" class="headerlink" title="协同过滤推荐"></a>协同过滤推荐</h2><p>协同过滤(Collaborative Filtering，CF)是一种根据用户对各种产品的交互与评分来推荐 新产品的推荐系统技术。协同过滤最突出的优点就在于它的鲁棒性，适用于多种输入数据: 无论是“显式”的输入数据(例如在电影网站上进行评分)还是“隐式”的(例如用户访 问了一个产品的页面但是没有对产品评分)都可以用来做协同过滤。仅仅根据这些交互， 协同过滤算法就能够知道哪些产品之间比较相似以及哪些用户之间比较相似，然后就可以 做出新的推荐 。相比与基于内容的推荐算法，协同过滤推荐算法不需要分析项目的内 容和特征，所以可以不依赖于特征信息获取技术，从而适用于各种类别的项目。</p>
+<p>总体上来说，协同过滤是一种利用集体智慧的方法，使用部分或所有用户的行为数据来进行推荐，不同用户通过推荐系统间接地相互协作，来获取各自感兴趣的信息。协同过 滤的核心是找出用户或项目的邻居，即相似的用户或项目，然后取若干个最近邻居推荐给 用户。根据具体的实现，协同过滤又可以被分为多个子类别，分别是基于记忆的协同过滤 (Memory-Based Collaborative Filtering)，基于模型的协同过滤(Model-Based Collaborative Filtering)，基于社交网络关系的协同过滤(Social-Based Collaborative Filtering)等。</p>
+<h3 id="基于记忆的协同过滤"><a href="#基于记忆的协同过滤" class="headerlink" title="基于记忆的协同过滤"></a>基于记忆的协同过滤</h3><p>基于记忆的协同过滤算法使用全部或大部分用户—项目数据来生成预测。基于记忆的 协同过滤常用的有两种 :基于物品的协同过滤(Item-Based Collaborative Filtering， Item-Based CF) 和基于用户的协同过滤 (User-Based Collaborative Filtering，User-Based CF)。</p>
+<p>对于类似微博、新闻、论坛、社交和知识问答等内容极多、候选推荐项目庞大的系统， User-Based CF 方法通常优于 Item-Based CF。因为这种情况下，物品相似度的计算量巨大， 而且需要频繁更新，而使用 User-Based CF 能够避免计算物品间的相似度。相反，对于一 个用户数量远超过物品数量的应用来说，此时 Item-Based CF 的性能可能比 User-Based CF 更优，这是由于此种情况的物品间相似度要比用户间相似度更容易计算。由此可见，推荐 系统的设计者必须根据应用的特点来选择合适的算法 ，不能一概而论。</p>
+<p>与基于内容的推荐算法相比，Item-Based CF 和 User-Based CF 有下列优点:</p>
+<ul>
+<li><ol>
+<li>能够过滤难以进行内容分析的信息，如艺术品、音乐、文本、视频;</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>可以基于一些复杂的，难以描述的概念进行过滤，如品质、风格、流行度等。</li>
+</ol>
+</li>
+</ul>
+<p>然而，Item-Based CF 和 User-Based CF 也存在着以下的缺点:</p>
+<ul>
+<li><ol>
+<li>稀疏性问题。如果用户对物品的评价非常稀疏，没有充足的数据用于计算相似性，<br> 那么基于评价所得到的用户或物品间的相似性可能不准确;</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>可扩展性问题。随着用户和物品的增多，数据量将会剧增，系统的性能会越来越<br>低;</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>冷启动问题。如果某一物品从来没有被评价过，则该物品不会被列为相似物品，<br>那么这个物品就不可能被推荐。类似的，对于一个从未评价过物品的用户，无法 获得推荐。</li>
+</ol>
+</li>
+</ul>
+<h3 id="基于模型的协同过滤"><a href="#基于模型的协同过滤" class="headerlink" title="基于模型的协同过滤"></a>基于模型的协同过滤</h3><p>Model-Based CF 简单来说是先用历史数据训练得到推荐模型，再用此模型进行预测的推荐算法。常见的模型算法包括基于概率的朴素贝叶斯算法、聚类算法和基于矩阵分解的算法等 。</p>
+<p>常用的矩阵分解算法有:正则化矩阵分解(Regularized Matrix Factorization)，带偏置 的矩阵分解(Biased Matrix Factorization)，交替最小二乘法(Alternating Least Squares，ALS) 和奇异值分解(Singular Value Decomposition，SVD)。这些算法的基本思想都是将稀疏且 高维的用户—物品评分矩阵分解为两个低维矩阵，分别表示用户的特征和物品的特征。用 户的特征矩阵可以代表用户的兴趣，同样的，物品的特征矩阵暗含了物品的特点，这两个 矩阵的乘积能反应出用户对物品的喜好程度 。所以该类方法的主要工作就是计算出用户 的特征矩阵和物品的特征矩阵。</p>
+<h3 id="基于社交网络关系的协同过滤"><a href="#基于社交网络关系的协同过滤" class="headerlink" title="基于社交网络关系的协同过滤"></a>基于社交网络关系的协同过滤</h3><p>简单来说，是一种使用用户的社交关系数据、用户好友的喜好数据等社交类数据来进行推荐的算法。该类算法适合于微博、微信等拥有用户社交关系数据的系统。</p>
+<h2 id="混合型推荐"><a href="#混合型推荐" class="headerlink" title="混合型推荐"></a>混合型推荐</h2><p>  混合推荐是指将多种推荐技术综合，取长补短，以此来获得更好的推荐效果。常用的<br>方案是将协同过滤技术与另一种算法结合，然后将不同方法得出的推荐结果进行筛选和融<br>合，从而提高推荐效果。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="followme">
+  <span>Welcome to my other publishing channels</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Spark/" rel="tag"># Spark</a>
+              <a href="/tags/algorithm/" rel="tag"># algorithm</a>
+              <a href="/tags/recommendation/" rel="tag"># recommendation</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2018/05/01/spark-streaming-uv/" rel="prev" title="用Spark Streaming实时计算海量用户UV">
+                  <i class="fa fa-chevron-left"></i> 用Spark Streaming实时计算海量用户UV
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2018/05/03/spark-recommendation-2/" rel="next" title="基于Spark实现推荐算法-2:基于用户的协同过滤(理论篇)">
+                  基于Spark实现推荐算法-2:基于用户的协同过滤(理论篇) <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

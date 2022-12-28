@@ -53,6 +53,7 @@
   <noscript>
     <link rel="stylesheet" href="/css/noscript.css">
   </noscript>
+<link rel="alternate" href="/atom.xml" title="Liam's Blog" type="application/atom+xml">
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
@@ -89,7 +90,7 @@
 
 
 <nav class="site-nav">
-  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li><li class="menu-item menu-item-rss"><a href="/atom.xml" rel="section"><i class="fa fa-rss fa-fw"></i>RSS</a></li>
       <li class="menu-item menu-item-search">
         <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
         </a>
@@ -186,7 +187,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2022/04/25/2022-04-25-Extend-Spark-Data-Source/">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2022/04/25/Extend-Spark-Data-Source/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/long-cat.jpeg">
@@ -204,7 +205,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2022/04/25/2022-04-25-Extend-Spark-Data-Source/" class="post-title-link" itemprop="url">Extend Spark Data Source with DataFrame</a>
+          <a href="/2022/04/25/Extend-Spark-Data-Source/" class="post-title-link" itemprop="url">Extend Spark Data Source with DataFrame</a>
         </h2>
 
         <div class="post-meta-container">
@@ -241,7 +242,7 @@
 <h3 id="write-data-of-a-DataFrame-into-Google-Spreadsheet"><a href="#write-data-of-a-DataFrame-into-Google-Spreadsheet" class="headerlink" title="write data of a DataFrame into Google Spreadsheet"></a>write data of a DataFrame into Google Spreadsheet</h3><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">df.write.format(<span class="string">&quot;google-spreadsheet&quot;</span>)</span><br><span class="line">  .option(<span class="string">&quot;credentialsPath&quot;</span>, credentialFile)</span><br><span class="line">  .option(<span class="string">&quot;spreadsheetId&quot;</span>, spreadsheetId)</span><br><span class="line">  .option(<span class="string">&quot;sheetName&quot;</span>, sheetName)</span><br><span class="line">  .mode(<span class="type">SaveMode</span>.<span class="type">Overwrite</span>)</span><br><span class="line">  .save()</span><br></pre></td></tr></table></figure>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2022/04/25/2022-04-25-Extend-Spark-Data-Source/#more" rel="contents">
+              <a class="btn" href="/2022/04/25/Extend-Spark-Data-Source/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>
@@ -272,7 +273,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2021/09/24/2021-09-24-How-to-solve-dependency-conflicts-with-Maven/">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2021/09/24/How-to-solve-dependency-conflicts-with-Maven/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/long-cat.jpeg">
@@ -290,7 +291,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2021/09/24/2021-09-24-How-to-solve-dependency-conflicts-with-Maven/" class="post-title-link" itemprop="url">How to solve dependency conflicts with Maven</a>
+          <a href="/2021/09/24/How-to-solve-dependency-conflicts-with-Maven/" class="post-title-link" itemprop="url">How to solve dependency conflicts with Maven</a>
         </h2>
 
         <div class="post-meta-container">
@@ -331,7 +332,7 @@
 <p>As you all know, we can’t have two classes with the same package and name in one project. So there would be conflicts if different versions of a package are imported. Obviously, in this case, only one version of Guava will be imported.</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2021/09/24/2021-09-24-How-to-solve-dependency-conflicts-with-Maven/#more" rel="contents">
+              <a class="btn" href="/2021/09/24/How-to-solve-dependency-conflicts-with-Maven/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>
@@ -362,7 +363,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2021/05/08/2021-05-08-Kafka-Fundamental-Concepts/">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2021/05/08/Kafka-Fundamental-Concepts/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/long-cat.jpeg">
@@ -380,7 +381,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2021/05/08/2021-05-08-Kafka-Fundamental-Concepts/" class="post-title-link" itemprop="url">Kafka Fundamental Concepts</a>
+          <a href="/2021/05/08/Kafka-Fundamental-Concepts/" class="post-title-link" itemprop="url">Kafka Fundamental Concepts</a>
         </h2>
 
         <div class="post-meta-container">
@@ -416,7 +417,7 @@
 </blockquote>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2021/05/08/2021-05-08-Kafka-Fundamental-Concepts/#more" rel="contents">
+              <a class="btn" href="/2021/05/08/Kafka-Fundamental-Concepts/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>
@@ -447,7 +448,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2020/05/31/2020-05-31-details-you-need-to-know-about-Apache-Parquet/">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2020/05/31/details-you-need-to-know-about-Apache-Parquet/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/long-cat.jpeg">
@@ -465,7 +466,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/05/31/2020-05-31-details-you-need-to-know-about-Apache-Parquet/" class="post-title-link" itemprop="url">Details you need to know about Apache Parquet</a>
+          <a href="/2020/05/31/details-you-need-to-know-about-Apache-Parquet/" class="post-title-link" itemprop="url">Details you need to know about Apache Parquet</a>
         </h2>
 
         <div class="post-meta-container">
@@ -499,7 +500,7 @@
           <p>Parquet is a columnar file format that supports nested data. Lots of data systems support this data format because of it’s great advantage of performance.</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2020/05/31/2020-05-31-details-you-need-to-know-about-Apache-Parquet/#more" rel="contents">
+              <a class="btn" href="/2020/05/31/details-you-need-to-know-about-Apache-Parquet/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>
@@ -530,7 +531,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2020/03/29/2020-03-29-redis-lock-rate-limiter/">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2020/03/29/redis-lock-rate-limiter/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/long-cat.jpeg">
@@ -548,7 +549,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/03/29/2020-03-29-redis-lock-rate-limiter/" class="post-title-link" itemprop="url">基于Redis实现分布式锁和分布式限流器</a>
+          <a href="/2020/03/29/redis-lock-rate-limiter/" class="post-title-link" itemprop="url">基于Redis实现分布式锁和分布式限流器</a>
         </h2>
 
         <div class="post-meta-container">
@@ -583,7 +584,7 @@
 <p>分布式锁和分布式限流器在Java领域比较成熟和常用的开源实现是Redisson(<a target="_blank" rel="noopener" href="https://github.com/redisson/redisson/wiki/Redisson%E9%A1%B9%E7%9B%AE%E4%BB%8B%E7%BB%8D">中文官方介绍</a>)，下面从它的极小部分源码，分析下分布式锁和分布式限流器的实现逻辑。</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2020/03/29/2020-03-29-redis-lock-rate-limiter/#more" rel="contents">
+              <a class="btn" href="/2020/03/29/redis-lock-rate-limiter/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>
@@ -614,7 +615,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2020/02/29/2020-02-29-spark-core-memory/">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2020/02/29/spark-core-memory/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/long-cat.jpeg">
@@ -632,7 +633,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/02/29/2020-02-29-spark-core-memory/" class="post-title-link" itemprop="url">Spark Core 解析 4：内存模型</a>
+          <a href="/2020/02/29/spark-core-memory/" class="post-title-link" itemprop="url">Spark Core 解析 4：内存模型</a>
         </h2>
 
         <div class="post-meta-container">
@@ -667,7 +668,7 @@
 <p>从1.6版本开始，Spark引入了统一内存管理模型（之前版本只有静态内存管理，这里不细说），找到两张图描述的很清楚：</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2020/02/29/2020-02-29-spark-core-memory/#more" rel="contents">
+              <a class="btn" href="/2020/02/29/spark-core-memory/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>
@@ -698,7 +699,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2019/12/29/2019-12-29-spark-core-shuffle/">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2019/12/29/spark-core-shuffle/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/long-cat.jpeg">
@@ -716,7 +717,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2019/12/29/2019-12-29-spark-core-shuffle/" class="post-title-link" itemprop="url">Spark Core 解析 3：Shuffle</a>
+          <a href="/2019/12/29/spark-core-shuffle/" class="post-title-link" itemprop="url">Spark Core 解析 3：Shuffle</a>
         </h2>
 
         <div class="post-meta-container">
@@ -751,7 +752,7 @@
 <p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/20191229115009.png" alt="20191229115009.png"></p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2019/12/29/2019-12-29-spark-core-shuffle/#more" rel="contents">
+              <a class="btn" href="/2019/12/29/spark-core-shuffle/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>
@@ -782,7 +783,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2019/11/07/2019-11-07-spark-core-scheduler/">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2019/11/07/spark-core-scheduler/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/long-cat.jpeg">
@@ -800,7 +801,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2019/11/07/2019-11-07-spark-core-scheduler/" class="post-title-link" itemprop="url">Spark Core解析 2：Scheduler 调度体系</a>
+          <a href="/2019/11/07/spark-core-scheduler/" class="post-title-link" itemprop="url">Spark Core解析 2：Scheduler 调度体系</a>
         </h2>
 
         <div class="post-meta-container">
@@ -837,7 +838,7 @@
 <p>层级关系：Job &gt; Stage &gt; Task</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2019/11/07/2019-11-07-spark-core-scheduler/#more" rel="contents">
+              <a class="btn" href="/2019/11/07/spark-core-scheduler/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>
@@ -868,7 +869,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2019/10/23/2019-10-23-spark-core-rdd/">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2019/10/23/spark-core-rdd/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/long-cat.jpeg">
@@ -886,7 +887,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2019/10/23/2019-10-23-spark-core-rdd/" class="post-title-link" itemprop="url">Spark Core解析 1：RDD 弹性分布式数据集</a>
+          <a href="/2019/10/23/spark-core-rdd/" class="post-title-link" itemprop="url">Spark Core解析 1：RDD 弹性分布式数据集</a>
         </h2>
 
         <div class="post-meta-container">
@@ -922,7 +923,7 @@
 <p>图中最下面那个就是Spark Core啦，日常使用的RDD相关的API就属于Spark Core，而Dataset、DataFrame则属于Spark SQL。</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2019/10/23/2019-10-23-spark-core-rdd/#more" rel="contents">
+              <a class="btn" href="/2019/10/23/spark-core-rdd/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>
@@ -953,7 +954,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2019/09/28/2019-09-28-scala-implicit/">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2019/09/28/scala-implicit/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/long-cat.jpeg">
@@ -971,7 +972,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2019/09/28/2019-09-28-scala-implicit/" class="post-title-link" itemprop="url">Scala implicit 隐式转换安全驾驶指南</a>
+          <a href="/2019/09/28/scala-implicit/" class="post-title-link" itemprop="url">Scala implicit 隐式转换安全驾驶指南</a>
         </h2>
 
         <div class="post-meta-container">
@@ -1005,7 +1006,7 @@
           <p>这篇短文将结合实例对隐式转换的各种场景进行解释和总结，希望看完的人能够安全驶过隐式转换这个大坑。</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2019/09/28/2019-09-28-scala-implicit/#more" rel="contents">
+              <a class="btn" href="/2019/09/28/scala-implicit/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>

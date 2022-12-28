@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"liam-blog.ml","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="RDD是啥Resilient Distributed Dataset (RDD)，弹性分布式数据集，是对不可修改，分区的数据集合的抽象。 RDD is characterized by five main properties:  A list of partitions A function for computing each split A list of dependencies on o">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark API 全集(3):Spark RDD API全集">
+<meta property="og:url" content="https://liam-blog.ml/2018/03/26/spark-rdd-RDD-api/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="RDD是啥Resilient Distributed Dataset (RDD)，弹性分布式数据集，是对不可修改，分区的数据集合的抽象。 RDD is characterized by five main properties:  A list of partitions A function for computing each split A list of dependencies on o">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2018-03-26T14:11:43.000Z">
+<meta property="article:modified_time" content="2022-12-03T09:20:44.347Z">
+<meta property="article:author" content="Liam">
+<meta property="article:tag" content="Spark">
+<meta property="article:tag" content="API">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://liam-blog.ml/2018/03/26/spark-rdd-RDD-api/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://liam-blog.ml/2018/03/26/spark-rdd-RDD-api/","path":"2018/03/26/spark-rdd-RDD-api/","title":"Spark API 全集(3):Spark RDD API全集"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Spark API 全集(3):Spark RDD API全集 | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3LJ1Y8TCD3"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-3LJ1Y8TCD3","only_pageview":false}</script>
+  <script src="/js/third-party/analytics/google-analytics.js"></script>
+
+
+
+
+
+
+  <script async defer data-website-id="" src=""></script>
+
+  <script defer data-domain="" src=""></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="Liam's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Liam's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hi there, 2022!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li><li class="menu-item menu-item-rss"><a href="/atom.xml" rel="section"><i class="fa fa-rss fa-fw"></i>RSS</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#RDD%E6%98%AF%E5%95%A5"><span class="nav-number">1.</span> <span class="nav-text">RDD是啥</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#org-spark-rdd-RDD%E7%B1%BB%E6%96%B9%E6%B3%95"><span class="nav-number">2.</span> <span class="nav-text">org.spark.rdd.RDD类方法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%AE%E5%80%BC%E8%BD%AC%E6%8D%A2%E6%93%8D%E4%BD%9C"><span class="nav-number">2.0.1.</span> <span class="nav-text">键值转换操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%81%9A%E5%90%88%E7%9B%B8%E5%85%B3"><span class="nav-number">2.0.2.</span> <span class="nav-text">聚合相关</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%81%8D%E5%8E%86%E5%85%83%E7%B4%A0"><span class="nav-number">2.0.3.</span> <span class="nav-text">遍历元素</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%96%E5%85%83%E7%B4%A0%E7%9B%B8%E5%85%B3"><span class="nav-number">2.0.4.</span> <span class="nav-text">取元素相关</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9B%86%E5%90%88%E9%97%B4%E8%BF%90%E7%AE%97"><span class="nav-number">2.0.5.</span> <span class="nav-text">集合间运算</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B6%E4%BB%96"><span class="nav-number">2.0.6.</span> <span class="nav-text">其他</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BF%9D%E5%AD%98"><span class="nav-number">2.0.7.</span> <span class="nav-text">保存</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%98%E9%87%8F"><span class="nav-number">2.1.</span> <span class="nav-text">变量</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/images/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2018/03/26/spark-rdd-RDD-api/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Spark API 全集(3):Spark RDD API全集 | Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spark API 全集(3):Spark RDD API全集
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2018-03-26 22:11:43" itemprop="dateCreated datePublished" datetime="2018-03-26T22:11:43+08:00">2018-03-26</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-12-03 17:20:44" itemprop="dateModified" datetime="2022-12-03T17:20:44+08:00">2022-12-03</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h1 id="RDD是啥"><a href="#RDD是啥" class="headerlink" title="RDD是啥"></a>RDD是啥</h1><p>Resilient Distributed Dataset (RDD)，弹性分布式数据集，是对不可修改，分区的数据集合的抽象。</p>
+<p>RDD is characterized by five main properties:</p>
+<ul>
+<li>A list of partitions</li>
+<li>A function for computing each split</li>
+<li>A list of dependencies on other RDDs</li>
+<li>Optionally, a Partitioner for key-value RDDs (e.g. to say that the RDD is hash-partitioned)</li>
+<li>Optionally, a list of preferred locations to compute each split on (e.g. block locations for an HDFS file)<span id="more"></span></li>
+</ul>
+<h1 id="org-spark-rdd-RDD类方法"><a href="#org-spark-rdd-RDD类方法" class="headerlink" title="org.spark.rdd.RDD类方法"></a>org.spark.rdd.RDD类方法</h1><p>RDD是一个抽象类，定义如下</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">RDD</span>[<span class="type">T</span>] <span class="keyword">extends</span> <span class="title">Serializable</span> <span class="keyword">with</span> <span class="title">Logging</span></span></span><br></pre></td></tr></table></figure>
+<p>RDD类的public方法大约有80多个（包括不同参数重载的）,均在下面列出。</p>
+<p>值得注意的是，RDD类中并没有定义xxxByKey形式的方法，这类方法其实是在PairRDDFunctions中定义的，通过隐式转换，键值对形式的RDD（即RDD[(K, V)）可以调用PairRDDFunctions中定义的方法。相关的隐式转换定义在RDD的伴生对象中。</p>
+<h3 id="键值转换操作"><a href="#键值转换操作" class="headerlink" title="键值转换操作"></a>键值转换操作</h3><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">filter(f: (<span class="type">T</span>) ⇒ <span class="type">Boolean</span>): <span class="type">RDD</span>[<span class="type">T</span>]</span><br><span class="line">过滤数据，仅留下使得f返回<span class="literal">true</span>的元素。</span><br><span class="line"></span><br><span class="line">map[<span class="type">U</span>](f: (<span class="type">T</span>) ⇒ <span class="type">U</span>)(<span class="keyword">implicit</span> arg0: <span class="type">ClassTag</span>[<span class="type">U</span>]): <span class="type">RDD</span>[<span class="type">U</span>]</span><br><span class="line">将一个<span class="type">RDD</span>中的每个数据项，通过map中的函数映射变为一个新的元素。</span><br><span class="line">输入分区与输出分区一对一，即：有多少个输入分区，就有多少个输出分区。</span><br><span class="line"></span><br><span class="line">flatMap[<span class="type">U</span>](f: (<span class="type">T</span>) ⇒ <span class="type">TraversableOnce</span>[<span class="type">U</span>])(<span class="keyword">implicit</span> arg0: <span class="type">ClassTag</span>[<span class="type">U</span>]): <span class="type">RDD</span>[<span class="type">U</span>]</span><br><span class="line">第一步和map一样，最后将所有的输出分区合并成一个。</span><br><span class="line">使用flatMap时候需要注意：</span><br><span class="line">flatMap会将字符串看成是一个字符数组。</span><br><span class="line"></span><br><span class="line">mapPartitions[<span class="type">U</span>](f: (<span class="type">Iterator</span>[<span class="type">T</span>]) ⇒ <span class="type">Iterator</span>[<span class="type">U</span>], preservesPartitioning: <span class="type">Boolean</span> = <span class="literal">false</span>)(<span class="keyword">implicit</span> arg0: <span class="type">ClassTag</span>[<span class="type">U</span>]): <span class="type">RDD</span>[<span class="type">U</span>]</span><br><span class="line">该函数和map函数类似，只不过映射函数的参数由<span class="type">RDD</span>中的每一个元素变成了<span class="type">RDD</span>中每一个分区的迭代器。如果在映射的过程中需要频繁创建额外的对象，使用mapPartitions要比map高效的过。</span><br><span class="line">比如，将<span class="type">RDD</span>中的所有数据通过<span class="type">JDBC</span>连接写入数据库，如果使用map函数，可能要为每一个元素都创建一个connection，这样开销很大，如果使用mapPartitions，那么只需要针对每一个分区建立一个connection。</span><br><span class="line">参数preservesPartitioning表示是否保留父<span class="type">RDD</span>的partitioner分区信息。</span><br><span class="line"></span><br><span class="line">mapPartitionsWithIndex[<span class="type">U</span>](f: (<span class="type">Int</span>, <span class="type">Iterator</span>[<span class="type">T</span>]) =&gt; <span class="type">Iterator</span>[<span class="type">U</span>], preservesPartitioning: <span class="type">Boolean</span> = <span class="literal">false</span>)(<span class="keyword">implicit</span> arg0: <span class="type">ClassTag</span>[<span class="type">U</span>]): <span class="type">RDD</span>[<span class="type">U</span>]</span><br><span class="line">函数作用同mapPartitions，不过提供了两个参数，第一个参数为分区的索引。</span><br><span class="line"></span><br><span class="line">keyBy[<span class="type">K</span>](f: (<span class="type">T</span>) ⇒ <span class="type">K</span>): <span class="type">RDD</span>[(<span class="type">K</span>, <span class="type">T</span>)]</span><br><span class="line">通过f函数为每个元素生成一个<span class="type">KEY</span></span><br><span class="line"></span><br><span class="line">sortBy[<span class="type">K</span>](f: (<span class="type">T</span>) ⇒ <span class="type">K</span>, ascending: <span class="type">Boolean</span> = <span class="literal">true</span>, numPartitions: <span class="type">Int</span> = <span class="keyword">this</span>.partitions.length)(<span class="keyword">implicit</span> ord: <span class="type">Ordering</span>[<span class="type">K</span>], ctag: <span class="type">ClassTag</span>[<span class="type">K</span>]): <span class="type">RDD</span>[<span class="type">T</span>]</span><br><span class="line">通过给定的函数对元素排序</span><br><span class="line"></span><br><span class="line">zip[<span class="type">U</span>](other: <span class="type">RDD</span>[<span class="type">U</span>])(<span class="keyword">implicit</span> arg0: <span class="type">ClassTag</span>[<span class="type">U</span>]): <span class="type">RDD</span>[(<span class="type">T</span>, <span class="type">U</span>)]</span><br><span class="line">与另一个<span class="type">RDD</span>组合成（k,v)对。</span><br><span class="line"></span><br><span class="line">zipPartitions[<span class="type">B</span>, <span class="type">V</span>](rdd2: <span class="type">RDD</span>[<span class="type">B</span>], preservesPartitioning: <span class="type">Boolean</span>)(f: (<span class="type">Iterator</span>[<span class="type">T</span>], <span class="type">Iterator</span>[<span class="type">B</span>]) ⇒ <span class="type">Iterator</span>[<span class="type">V</span>])(<span class="keyword">implicit</span> arg0: <span class="type">ClassTag</span>[<span class="type">B</span>], arg1: <span class="type">ClassTag</span>[<span class="type">V</span>]): <span class="type">RDD</span>[<span class="type">V</span>]</span><br><span class="line"></span><br><span class="line">zipWithIndex(): <span class="type">RDD</span>[(<span class="type">T</span>, <span class="type">Long</span>)]</span><br><span class="line"></span><br><span class="line">zipWithUniqueId(): <span class="type">RDD</span>[(<span class="type">T</span>, <span class="type">Long</span>)]</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="聚合相关"><a href="#聚合相关" class="headerlink" title="聚合相关"></a>聚合相关</h3><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line">aggregate[<span class="type">U</span>](zeroValue: <span class="type">U</span>)(seqOp: (<span class="type">U</span>, <span class="type">T</span>) ⇒ <span class="type">U</span>, combOp: (<span class="type">U</span>, <span class="type">U</span>) ⇒ <span class="type">U</span>)(<span class="keyword">implicit</span> arg0: <span class="type">ClassTag</span>[<span class="type">U</span>]): <span class="type">U</span></span><br><span class="line">aggregate用户聚合<span class="type">RDD</span>中的元素，先使用seqOp将<span class="type">RDD</span>中每个分区中的<span class="type">T</span>类型元素聚合成<span class="type">U</span>类型，再使用combOp将之前每个分区聚合后的<span class="type">U</span>类型聚合成<span class="type">U</span>类型，特别注意seqOp和combOp都会使用zeroValue的值，zeroValue的类型为<span class="type">U</span>。</span><br><span class="line"></span><br><span class="line">treeAggregate[<span class="type">U</span>](zeroValue: <span class="type">U</span>)(seqOp: (<span class="type">U</span>, <span class="type">T</span>) ⇒ <span class="type">U</span>, combOp: (<span class="type">U</span>, <span class="type">U</span>) ⇒ <span class="type">U</span>, depth: <span class="type">Int</span> = <span class="number">2</span>)(<span class="keyword">implicit</span> arg0: <span class="type">ClassTag</span>[<span class="type">U</span>]): <span class="type">U</span></span><br><span class="line">多层级聚合</span><br><span class="line"></span><br><span class="line">reduce(f: (<span class="type">T</span>, <span class="type">T</span>) ⇒ <span class="type">T</span>): <span class="type">T</span></span><br><span class="line">根据映射函数f，对<span class="type">RDD</span>中的元素进行二元计算，返回计算结果。</span><br><span class="line"></span><br><span class="line">treeReduce(f: (<span class="type">T</span>, <span class="type">T</span>) ⇒ <span class="type">T</span>, depth: <span class="type">Int</span> = <span class="number">2</span>): <span class="type">T</span></span><br><span class="line">多级reduce归并聚合</span><br><span class="line"></span><br><span class="line">fold(zeroValue: <span class="type">T</span>)(op: (<span class="type">T</span>, <span class="type">T</span>) ⇒ <span class="type">T</span>): <span class="type">T</span></span><br><span class="line">fold是aggregate的简化，将aggregate中的seqOp和combOp使用同一个函数op。</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">count(): <span class="type">Long</span></span><br><span class="line">count返回<span class="type">RDD</span>中的元素数量。</span><br><span class="line"></span><br><span class="line">countApprox(timeout: <span class="type">Long</span>, confidence: <span class="type">Double</span> = <span class="number">0.95</span>): <span class="type">PartialResult</span>[<span class="type">BoundedDouble</span>]</span><br><span class="line">近似count</span><br><span class="line"></span><br><span class="line">countApproxDistinct(relativeSD: <span class="type">Double</span> = <span class="number">0.05</span>): <span class="type">Long</span></span><br><span class="line">countApproxDistinct(p: <span class="type">Int</span>, sp: <span class="type">Int</span>): <span class="type">Long</span></span><br><span class="line">近似distinct count</span><br><span class="line"></span><br><span class="line">countByValue()(<span class="keyword">implicit</span> ord: <span class="type">Ordering</span>[<span class="type">T</span>] = <span class="literal">null</span>): <span class="type">Map</span>[<span class="type">T</span>, <span class="type">Long</span>]</span><br><span class="line">计算每个值出现次数</span><br><span class="line"></span><br><span class="line">countByValueApprox(timeout: <span class="type">Long</span>, confidence: <span class="type">Double</span> = <span class="number">0.95</span>)(<span class="keyword">implicit</span> ord: <span class="type">Ordering</span>[<span class="type">T</span>] = <span class="literal">null</span>):</span><br><span class="line">计算每个值出现次数近似值</span><br><span class="line"></span><br><span class="line">distinct(): <span class="type">RDD</span>[<span class="type">T</span>]</span><br><span class="line">distinct(numPartitions: <span class="type">Int</span>)(<span class="keyword">implicit</span> ord: <span class="type">Ordering</span>[<span class="type">T</span>] = <span class="literal">null</span>): <span class="type">RDD</span>[<span class="type">T</span>]</span><br><span class="line">返回元素去重后的<span class="type">RDD</span></span><br><span class="line"></span><br><span class="line">groupBy[<span class="type">K</span>](f: (<span class="type">T</span>) ⇒ <span class="type">K</span>)(<span class="keyword">implicit</span> kt: <span class="type">ClassTag</span>[<span class="type">K</span>]): <span class="type">RDD</span>[(<span class="type">K</span>, <span class="type">Iterable</span>[<span class="type">T</span>])]</span><br><span class="line">groupBy[<span class="type">K</span>](f: (<span class="type">T</span>) ⇒ <span class="type">K</span>, numPartitions: <span class="type">Int</span>)(<span class="keyword">implicit</span> kt: <span class="type">ClassTag</span>[<span class="type">K</span>]): <span class="type">RDD</span>[(<span class="type">K</span>, <span class="type">Iterable</span>[<span class="type">T</span>])]</span><br><span class="line">groupBy[<span class="type">K</span>](f: (<span class="type">T</span>) ⇒ <span class="type">K</span>, p: <span class="type">Partitioner</span>)(<span class="keyword">implicit</span> kt: <span class="type">ClassTag</span>[<span class="type">K</span>], ord: <span class="type">Ordering</span>[<span class="type">K</span>] = <span class="literal">null</span>): <span class="type">RDD</span>[(<span class="type">K</span>, <span class="type">Iterable</span>[<span class="type">T</span>])]</span><br><span class="line">按指定函数生成key，并按key分组。</span><br><span class="line">注意：性能比较差，推荐用<span class="type">PairRDDFunctions</span>.reduceByKey or <span class="type">PairRDDFunctions</span>.aggregateByKey.</span><br><span class="line">因为reduceByKey会先在分区内做聚合，再进行数据交换(shuffle)。</span><br><span class="line"></span><br><span class="line">glom(): <span class="type">RDD</span>[<span class="type">Array</span>[<span class="type">T</span>]]</span><br><span class="line">该函数是将<span class="type">RDD</span>中每一个分区中类型为<span class="type">T</span>的元素转换成<span class="type">Array</span>[<span class="type">T</span>]，这样每一个分区就只有一个数组元素。</span><br><span class="line"></span><br><span class="line">max()(<span class="keyword">implicit</span> ord: <span class="type">Ordering</span>[<span class="type">T</span>]): <span class="type">T</span></span><br><span class="line">最大的元素</span><br><span class="line"></span><br><span class="line">min()(<span class="keyword">implicit</span> ord: <span class="type">Ordering</span>[<span class="type">T</span>]): <span class="type">T</span></span><br><span class="line">最小的元素</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="遍历元素"><a href="#遍历元素" class="headerlink" title="遍历元素"></a>遍历元素</h3><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">foreach(f: (<span class="type">T</span>) ⇒ <span class="type">Unit</span>): <span class="type">Unit</span></span><br><span class="line">foreach用于遍历<span class="type">RDD</span>,将函数f应用于每一个元素。</span><br><span class="line">但要注意，如果对<span class="type">RDD</span>执行foreach，只会在<span class="type">Executor</span>端有效，而并不是<span class="type">Driver</span>端。</span><br><span class="line">比如：rdd.foreach(println)，只会在<span class="type">Executor</span>的stdout中打印出来，<span class="type">Driver</span>端是看不到的。</span><br><span class="line"></span><br><span class="line">foreachPartition(f: (<span class="type">Iterator</span>[<span class="type">T</span>]) ⇒ <span class="type">Unit</span>): <span class="type">Unit</span></span><br><span class="line">foreachPartition和foreach类似，只不过是对每一个分区使用f。</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="取元素相关"><a href="#取元素相关" class="headerlink" title="取元素相关"></a>取元素相关</h3><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">collect(): <span class="type">Array</span>[<span class="type">T</span>]</span><br><span class="line">collect用于将一个<span class="type">RDD</span>转换成数组。</span><br><span class="line"></span><br><span class="line">first(): <span class="type">T</span></span><br><span class="line">first返回<span class="type">RDD</span>中的第一个元素，不排序。</span><br><span class="line"></span><br><span class="line">take(num: <span class="type">Int</span>): <span class="type">Array</span>[<span class="type">T</span>]</span><br><span class="line">take用于获取<span class="type">RDD</span>中从<span class="number">0</span>到num<span class="number">-1</span>下标的元素，不排序。</span><br><span class="line"></span><br><span class="line">top(num: <span class="type">Int</span>)(<span class="keyword">implicit</span> ord: <span class="type">Ordering</span>[<span class="type">T</span>]): <span class="type">Array</span>[<span class="type">T</span>]</span><br><span class="line">top函数用于从<span class="type">RDD</span>中，按照默认（降序）或者指定的排序规则，返回前num个元素。</span><br><span class="line"></span><br><span class="line">takeOrdered(num: <span class="type">Int</span>)(<span class="keyword">implicit</span> ord: <span class="type">Ordering</span>[<span class="type">T</span>]): <span class="type">Array</span>[<span class="type">T</span>]</span><br><span class="line">takeOrdered和top类似，只不过以和top相反的顺序返回元素</span><br><span class="line"></span><br><span class="line">takeSample(withReplacement: <span class="type">Boolean</span>, num: <span class="type">Int</span>, seed: <span class="type">Long</span> = <span class="type">Utils</span>.random.nextLong): <span class="type">Array</span>[<span class="type">T</span>]</span><br><span class="line">取样本元素</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h3 id="集合间运算"><a href="#集合间运算" class="headerlink" title="集合间运算"></a>集合间运算</h3><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">++(other: <span class="type">RDD</span>[<span class="type">T</span>]): <span class="type">RDD</span>[<span class="type">T</span>]</span><br><span class="line">与另一个<span class="type">RDD</span> union。</span><br><span class="line"></span><br><span class="line">intersection(other: <span class="type">RDD</span>[<span class="type">T</span>], partitioner: <span class="type">Partitioner</span>)(<span class="keyword">implicit</span> ord: <span class="type">Ordering</span>[<span class="type">T</span>] = <span class="literal">null</span>): <span class="type">RDD</span>[<span class="type">T</span>]</span><br><span class="line">intersection(other: <span class="type">RDD</span>[<span class="type">T</span>], numPartitions: <span class="type">Int</span>): <span class="type">RDD</span>[<span class="type">T</span>]</span><br><span class="line">intersection(other: <span class="type">RDD</span>[<span class="type">T</span>]): <span class="type">RDD</span>[<span class="type">T</span>]</span><br><span class="line">取交集</span><br><span class="line"></span><br><span class="line">subtract(other: <span class="type">RDD</span>[<span class="type">T</span>], p: <span class="type">Partitioner</span>)(<span class="keyword">implicit</span> ord: <span class="type">Ordering</span>[<span class="type">T</span>] = <span class="literal">null</span>): <span class="type">RDD</span>[<span class="type">T</span>]</span><br><span class="line">subtract(other: <span class="type">RDD</span>[<span class="type">T</span>], numPartitions: <span class="type">Int</span>): <span class="type">RDD</span>[<span class="type">T</span>]</span><br><span class="line">subtract(other: <span class="type">RDD</span>[<span class="type">T</span>]): <span class="type">RDD</span>[<span class="type">T</span>]</span><br><span class="line">求差集</span><br><span class="line"></span><br><span class="line">union(other: <span class="type">RDD</span>[<span class="type">T</span>]): <span class="type">RDD</span>[<span class="type">T</span>]</span><br><span class="line">与另一个<span class="type">RDD</span>合并，类似union all,不会去重。</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h3><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line">persist(): <span class="type">RDD</span>.<span class="keyword">this</span>.<span class="keyword">type</span></span><br><span class="line">persist(newLevel: <span class="type">StorageLevel</span>): <span class="type">RDD</span>.<span class="keyword">this</span>.<span class="keyword">type</span></span><br><span class="line">缓存数据，可设置缓存级别(如果尚未设置过，才可以设置，本地checkpoint除外)</span><br><span class="line"></span><br><span class="line">unpersist(blocking: <span class="type">Boolean</span> = <span class="literal">true</span>): <span class="type">RDD</span>.<span class="keyword">this</span>.<span class="keyword">type</span></span><br><span class="line"><span class="type">Mark</span> the <span class="type">RDD</span> as non-persistent, and remove all blocks <span class="keyword">for</span> it from memory and disk.</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">cache(): <span class="type">RDD</span>.<span class="keyword">this</span>.<span class="keyword">type</span></span><br><span class="line"><span class="type">MEMORY_ONLY</span>级别缓存数据</span><br><span class="line"></span><br><span class="line">cartesian[<span class="type">U</span>](other: <span class="type">RDD</span>[<span class="type">U</span>])(<span class="keyword">implicit</span> arg0: <span class="type">ClassTag</span>[<span class="type">U</span>]): <span class="type">RDD</span>[(<span class="type">T</span>, <span class="type">U</span>)]：</span><br><span class="line">计算两个<span class="type">RDD</span>的迪卡尔积</span><br><span class="line"></span><br><span class="line">checkpoint(): <span class="type">Unit</span></span><br><span class="line">标记将该<span class="type">RDD</span>进行checkpoint处理？</span><br><span class="line"></span><br><span class="line">coalesce(numPartitions: <span class="type">Int</span>, shuffle: <span class="type">Boolean</span> = <span class="literal">false</span>)(<span class="keyword">implicit</span> ord: <span class="type">Ordering</span>[<span class="type">T</span>] = <span class="literal">null</span>): <span class="type">RDD</span>[<span class="type">T</span>]</span><br><span class="line">分区合并(只能减少分区)，使用<span class="type">HashPartitioner</span>。</span><br><span class="line">第一个参数为重分区的数目，第二个为是否进行shuffle，默认为<span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">repartition(numPartitions: <span class="type">Int</span>)(<span class="keyword">implicit</span> ord: <span class="type">Ordering</span>[<span class="type">T</span>] = <span class="literal">null</span>): <span class="type">RDD</span>[<span class="type">T</span>]</span><br><span class="line">调整分区数，会导致shuffle，如果是减少分区，可以使用coalesce，避免shuffle。</span><br><span class="line"></span><br><span class="line">toDebugString: <span class="type">String</span></span><br><span class="line">返回<span class="type">RDD</span>依赖树/血统图</span><br><span class="line"></span><br><span class="line">getCheckpointFile: <span class="type">Option</span>[<span class="type">String</span>]</span><br><span class="line">获取checkpoint文件夹名称</span><br><span class="line"></span><br><span class="line">localCheckpoint(): <span class="type">RDD</span>.<span class="keyword">this</span>.<span class="keyword">type</span></span><br><span class="line">标记为使用本地checkpoint</span><br><span class="line"></span><br><span class="line">isEmpty(): <span class="type">Boolean</span></span><br><span class="line">是否含<span class="number">0</span>个元素</span><br><span class="line"></span><br><span class="line">iterator(split: <span class="type">Partition</span>, context: <span class="type">TaskContext</span>): <span class="type">Iterator</span>[<span class="type">T</span>]</span><br><span class="line">返回迭代器，不应直接调用，而是给<span class="type">RDD</span>的子类用的。</span><br><span class="line"></span><br><span class="line">toLocalIterator: <span class="type">Iterator</span>[<span class="type">T</span>]</span><br><span class="line">返回元素的本地迭代器</span><br><span class="line"></span><br><span class="line">pipe(command: <span class="type">String</span>): <span class="type">RDD</span>[<span class="type">String</span>]</span><br><span class="line">pipe(command: <span class="type">String</span>, env: <span class="type">Map</span>[<span class="type">String</span>, <span class="type">String</span>]): <span class="type">RDD</span>[<span class="type">String</span>]</span><br><span class="line">pipe(command: <span class="type">Seq</span>[<span class="type">String</span>], env: <span class="type">Map</span>[<span class="type">String</span>, <span class="type">String</span>] = <span class="type">Map</span>(), printPipeContext: ((<span class="type">String</span>) ⇒ <span class="type">Unit</span>) ⇒ <span class="type">Unit</span> = <span class="literal">null</span>, printRDDElement: (<span class="type">T</span>, (<span class="type">String</span>) ⇒ <span class="type">Unit</span>) ⇒ <span class="type">Unit</span> = <span class="literal">null</span>, separateWorkingDir: <span class="type">Boolean</span> = <span class="literal">false</span>, bufferSize: <span class="type">Int</span> = <span class="number">8192</span>, encoding: <span class="type">String</span> = <span class="type">Codec</span>.defaultCharsetCodec.name): <span class="type">RDD</span>[<span class="type">String</span>]</span><br><span class="line">调用外部进程处理<span class="type">RDD</span>,如通过标准输入传给shell脚本。</span><br><span class="line"></span><br><span class="line">preferredLocations(split: <span class="type">Partition</span>): <span class="type">Seq</span>[<span class="type">String</span>]</span><br><span class="line"><span class="type">Get</span> the preferred locations of a partition, taking into account whether the <span class="type">RDD</span> is checkpointed.</span><br><span class="line"></span><br><span class="line">randomSplit(weights: <span class="type">Array</span>[<span class="type">Double</span>], seed: <span class="type">Long</span> = <span class="type">Utils</span>.random.nextLong): <span class="type">Array</span>[<span class="type">RDD</span>[<span class="type">T</span>]]</span><br><span class="line">按权随机将元素分组</span><br><span class="line"></span><br><span class="line">sample(withReplacement: <span class="type">Boolean</span>, fraction: <span class="type">Double</span>, seed: <span class="type">Long</span> = <span class="type">Utils</span>.random.nextLong): <span class="type">RDD</span>[<span class="type">T</span>]</span><br><span class="line">取样本/子集</span><br><span class="line"></span><br><span class="line">setName(_name: <span class="type">String</span>): <span class="type">RDD</span>.<span class="keyword">this</span>.<span class="keyword">type</span></span><br><span class="line">设置<span class="type">RDD</span>名字</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="保存"><a href="#保存" class="headerlink" title="保存"></a>保存</h3><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">saveAsObjectFile(path: <span class="type">String</span>): <span class="type">Unit</span></span><br><span class="line">保存为<span class="type">SequenceFile</span></span><br><span class="line"></span><br><span class="line">saveAsTextFile(path: <span class="type">String</span>, codec: <span class="type">Class</span>[_ &lt;: <span class="type">CompressionCodec</span>]): <span class="type">Unit</span></span><br><span class="line">saveAsTextFile(path: <span class="type">String</span>): <span class="type">Unit</span></span><br><span class="line">保存为文本文件</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="变量"><a href="#变量" class="headerlink" title="变量"></a>变量</h2><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">context: <span class="type">SparkContext</span></span><br><span class="line">创建<span class="type">RDD</span>的<span class="type">SparkContext</span></span><br><span class="line"></span><br><span class="line">sparkContext: <span class="type">SparkContext</span></span><br><span class="line">创建<span class="type">RDD</span>的<span class="type">SparkContext</span></span><br><span class="line"></span><br><span class="line">dependencies: <span class="type">Seq</span>[<span class="type">Dependency</span>[_]]</span><br><span class="line"><span class="type">RDD</span>的依赖列表</span><br><span class="line"></span><br><span class="line">getNumPartitions: <span class="type">Int</span></span><br><span class="line">获取<span class="type">RDD</span>的分区数</span><br><span class="line"></span><br><span class="line">getStorageLevel: <span class="type">StorageLevel</span></span><br><span class="line">获取存储等级，如果设置为none,则返回<span class="type">StorageLevel</span>.<span class="type">NONE</span> 。</span><br><span class="line"></span><br><span class="line">id: <span class="type">Int</span></span><br><span class="line">该<span class="type">RDD</span>的unique <span class="type">ID</span></span><br><span class="line"></span><br><span class="line">isCheckpointed: <span class="type">Boolean</span></span><br><span class="line">是否checkpointed and materialized, either reliably or locally.</span><br><span class="line"></span><br><span class="line">name: <span class="type">String</span></span><br><span class="line"><span class="type">RDD</span>的名字</span><br><span class="line"></span><br><span class="line">partitioner: <span class="type">Option</span>[<span class="type">Partitioner</span>]</span><br><span class="line">分区器</span><br><span class="line"></span><br><span class="line">partitions: <span class="type">Array</span>[<span class="type">Partition</span>]</span><br><span class="line">各个分区</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="followme">
+  <span>Welcome to my other publishing channels</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Spark/" rel="tag"># Spark</a>
+              <a href="/tags/API/" rel="tag"># API</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2018/03/26/es-guide-note/" rel="prev" title="[读书笔记] ES权威指南">
+                  <i class="fa fa-chevron-left"></i> [读书笔记] ES权威指南
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2018/05/01/spark-streaming-uv/" rel="next" title="用Spark Streaming实时计算海量用户UV">
+                  用Spark Streaming实时计算海量用户UV <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"liam-blog.ml","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="Spark内存模型Spark之所以快，很大程度上是因为它善于利用内存，大量利用内存进行存储和计算，从而减少磁盘IO，提升执行效率。 从1.6版本开始，Spark引入了统一内存管理模型（之前版本只有静态内存管理，这里不细说），找到两张图描述的很清楚：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark Core 解析 4：内存模型">
+<meta property="og:url" content="https://liam-blog.ml/2020/02/29/spark-core-memory/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="Spark内存模型Spark之所以快，很大程度上是因为它善于利用内存，大量利用内存进行存储和计算，从而减少磁盘IO，提升执行效率。 从1.6版本开始，Spark引入了统一内存管理模型（之前版本只有静态内存管理，这里不细说），找到两张图描述的很清楚：">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/spark-mem-on-heap.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/spark-mem-off-heap.png">
+<meta property="article:published_time" content="2020-02-29T15:20:38.000Z">
+<meta property="article:modified_time" content="2022-12-03T09:20:44.674Z">
+<meta property="article:author" content="Liam">
+<meta property="article:tag" content="Spark">
+<meta property="article:tag" content="Spark Core">
+<meta property="article:tag" content="memory">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Liam8/img/master/blog/spark-mem-on-heap.png">
+
+
+<link rel="canonical" href="https://liam-blog.ml/2020/02/29/spark-core-memory/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://liam-blog.ml/2020/02/29/spark-core-memory/","path":"2020/02/29/spark-core-memory/","title":"Spark Core 解析 4：内存模型"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Spark Core 解析 4：内存模型 | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3LJ1Y8TCD3"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-3LJ1Y8TCD3","only_pageview":false}</script>
+  <script src="/js/third-party/analytics/google-analytics.js"></script>
+
+
+
+
+
+
+  <script async defer data-website-id="" src=""></script>
+
+  <script defer data-domain="" src=""></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="Liam's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Liam's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hi there, 2022!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li><li class="menu-item menu-item-rss"><a href="/atom.xml" rel="section"><i class="fa fa-rss fa-fw"></i>RSS</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Spark%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B"><span class="nav-number">1.</span> <span class="nav-text">Spark内存模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%A0%E4%B8%AA%E9%9C%80%E8%A6%81%E6%B3%A8%E6%84%8F%E7%9A%84%E7%82%B9"><span class="nav-number">2.</span> <span class="nav-text">几个需要注意的点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%9F%E4%B8%80%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.</span> <span class="nav-text">统一内存模型的实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Execution%E6%89%A7%E8%A1%8C%E5%86%85%E5%AD%98"><span class="nav-number">4.</span> <span class="nav-text">Execution执行内存</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Storage%E5%AD%98%E5%82%A8%E5%86%85%E5%AD%98"><span class="nav-number">5.</span> <span class="nav-text">Storage存储内存</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%8C%AE"><span class="nav-number">6.</span> <span class="nav-text">参考文献</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/images/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2020/02/29/spark-core-memory/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Spark Core 解析 4：内存模型 | Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spark Core 解析 4：内存模型
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-02-29 23:20:38" itemprop="dateCreated datePublished" datetime="2020-02-29T23:20:38+08:00">2020-02-29</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-12-03 17:20:44" itemprop="dateModified" datetime="2022-12-03T17:20:44+08:00">2022-12-03</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h2 id="Spark内存模型"><a href="#Spark内存模型" class="headerlink" title="Spark内存模型"></a>Spark内存模型</h2><p>Spark之所以快，很大程度上是因为它善于利用内存，大量利用内存进行存储和计算，从而减少磁盘IO，提升执行效率。</p>
+<p>从1.6版本开始，Spark引入了统一内存管理模型（之前版本只有静态内存管理，这里不细说），找到两张图描述的很清楚：</p>
+<span id="more"></span>
+
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/spark-mem-on-heap.png" alt="spark-mem-on-heap.png"></p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/blog/spark-mem-off-heap.png" alt="spark-mem-off-heap.png"></p>
+<p>为什么有两张图呢，因为Spark既能使用JVM堆内存(on-heap)，也能使用堆外内存(off-heap)，两张图分别描述的是这两块内存的情况。图中已经把Spark对内存容量的划分很形象的说明了，网上相关文章也不少，不再赘述。</p>
+<h2 id="几个需要注意的点"><a href="#几个需要注意的点" class="headerlink" title="几个需要注意的点"></a>几个需要注意的点</h2><ul>
+<li><p>Storage与Execution区域之间的虚线，代表Storage与Execution内存的容量是可以动态变化的，比如Storage内存不足的时候，可以占用Execution的内存。但是，on-heap中的Storage不可以占用off-heap中的Execution内存，因为on-heap及off-heap整个的大小是固定的，没法互相占用。</p>
+</li>
+<li><p>Storage与Execution空间都不足时，都需要溢写至磁盘；Execution空间不足时，若有空间被Storage借用，该空间可以通过淘汰或转存磁盘的方式归还；Storage空间不足时，若有空间被Execution借用，则无法立即归还，只能等待用完释放。</p>
+</li>
+<li><p>Spark对堆内内存的管理是一种逻辑上的”规划式”的管理，因为对象实例占用内存的申请和释放都由JVM完成，Spark只能在申请后和释放前记录这些内存。说白了Spark只是个记账的，记录每次申请了多少内存，就能算出还剩多少内存。然鹅这个内存的帐并不是那么容易精确记录的，往往会对不上帐。首先，对于off-heap堆外内存来说，内存可以比较精确地申请和释放，问题不大。对于on-heap内存来说，序列化的对象可以精确计算大小，但非序列化的对象就只能估算了(出于性能考虑)，所以存在记账的内存大小不准的情况。另外，on-heap内存的回收是JVM自动进行的，账本上释放掉的内存空间，不一定已经被回收。因为记账的不准，所以即使进行了内存管理还是会有OOM的风险。</p>
+</li>
+</ul>
+<h2 id="统一内存模型的实现"><a href="#统一内存模型的实现" class="headerlink" title="统一内存模型的实现"></a>统一内存模型的实现</h2><p>核心的实现类是UnifiedMemoryManager，其中维护了4个内存账本：<br>onHeapStorageMemoryPool，offHeapStorageMemoryPool，onHeapExecutionMemoryPool，offHeapExecutionMemoryPool，<br>分别对应啥一看名字就知道了。</p>
+<p>虽然他们叫MemoryPool，还提供了releaseMemory、acquireMemory之类的方法，看上去挺虎，但实际上只是记录已用内存大小，进行数值上的加加减减而已。而Storage与Execution内存的互相借用，其实只是账本MemoryPool大小数值的调整而已。</p>
+<h2 id="Execution执行内存"><a href="#Execution执行内存" class="headerlink" title="Execution执行内存"></a>Execution执行内存</h2><p>每个Executor有一个MemoryManager，用来管理该Executor节点的内存；<br>每个TaskAtempt都有一个TaskMemoryManger管理单次Task执行的内存；<br>每个TaskMemoryManger对当前TaskAtempt中的多个MemoryConsumer进行管理，负责分配内存给MemoryConsumer；<br>MemoryConsumer就是Spark中最终的执行内存消费者，是一个抽象类，比较典型的实现类有ExternalAppendOnlyMap、ShuffleExternalSorter、ExternalSorter等，不难发现这些类都是与shuffle相关的（还有一些实现类是Spark SQL相关的），也即是说执行内存基本就是shuffle使用的内存。</p>
+<p>Shuffle相关可以参考<a href="https://liam-blog.ml/2019/12/29/spark-core-shuffle/">Spark Core 解析 3：Shuffle</a></p>
+<h2 id="Storage存储内存"><a href="#Storage存储内存" class="headerlink" title="Storage存储内存"></a>Storage存储内存</h2><p>主要用于存储cache和broadcast的数据，为Spark的存储体系服务。<br>介绍存储体系的时候再细说。</p>
+<h2 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h2><p><a target="_blank" rel="noopener" href="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/index.html">Apache Spark 内存管理详解</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="followme">
+  <span>Welcome to my other publishing channels</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Spark/" rel="tag"># Spark</a>
+              <a href="/tags/Spark-Core/" rel="tag"># Spark Core</a>
+              <a href="/tags/memory/" rel="tag"># memory</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2019/12/29/spark-core-shuffle/" rel="prev" title="Spark Core 解析 3：Shuffle">
+                  <i class="fa fa-chevron-left"></i> Spark Core 解析 3：Shuffle
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/03/29/redis-lock-rate-limiter/" rel="next" title="基于Redis实现分布式锁和分布式限流器">
+                  基于Redis实现分布式锁和分布式限流器 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

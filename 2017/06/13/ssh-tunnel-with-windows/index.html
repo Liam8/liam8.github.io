@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"liam-blog.ml","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="应用场景通常为了安全,服务器需要通过跳板机访问，服务器对外网暴露的端口也严格限制。这种情况下若要在本地访问服务器上的服务或系统就会比较蛋疼。有一个简单的解决方案，就是在本地和跳板机之间建立SSH隧道。SSH隧道提供了一个网络代理服务，通过该代理服务可以直接访问跳板机所在的局域网，即服务器上的任意端口，服务都可以直接访问。 本文介绍的方法比一般的端口映射更方便，不需要为每个端口配置一条SSH隧道，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一条通往服务器所有端口的隧道">
+<meta property="og:url" content="https://liam-blog.ml/2017/06/13/ssh-tunnel-with-windows/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="应用场景通常为了安全,服务器需要通过跳板机访问，服务器对外网暴露的端口也严格限制。这种情况下若要在本地访问服务器上的服务或系统就会比较蛋疼。有一个简单的解决方案，就是在本地和跳板机之间建立SSH隧道。SSH隧道提供了一个网络代理服务，通过该代理服务可以直接访问跳板机所在的局域网，即服务器上的任意端口，服务都可以直接访问。 本文介绍的方法比一般的端口映射更方便，不需要为每个端口配置一条SSH隧道，">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/tunnel-899053_640.jpg">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/xshell-1.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/xshell-2.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/xshell-3.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/xshell-4.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/xshell-5.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/switch-1.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/proxifier-0.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/proxifier-1.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/proxifier-2.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/proxifier-3.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/navicat.png">
+<meta property="article:published_time" content="2017-06-12T22:30:00.000Z">
+<meta property="article:modified_time" content="2022-12-03T09:20:44.281Z">
+<meta property="article:author" content="Liam">
+<meta property="article:tag" content="SSH">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/tunnel-899053_640.jpg">
+
+
+<link rel="canonical" href="https://liam-blog.ml/2017/06/13/ssh-tunnel-with-windows/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://liam-blog.ml/2017/06/13/ssh-tunnel-with-windows/","path":"2017/06/13/ssh-tunnel-with-windows/","title":"一条通往服务器所有端口的隧道"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>一条通往服务器所有端口的隧道 | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3LJ1Y8TCD3"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-3LJ1Y8TCD3","only_pageview":false}</script>
+  <script src="/js/third-party/analytics/google-analytics.js"></script>
+
+
+
+
+
+
+  <script async defer data-website-id="" src=""></script>
+
+  <script defer data-domain="" src=""></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="Liam's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Liam's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hi there, 2022!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li><li class="menu-item menu-item-rss"><a href="/atom.xml" rel="section"><i class="fa fa-rss fa-fw"></i>RSS</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">应用场景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#SSH%E9%9A%A7%E9%81%93%E5%BB%BA%E7%AB%8B"><span class="nav-number">2.</span> <span class="nav-text">SSH隧道建立</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Mac-amp-Linux-%E7%89%88"><span class="nav-number">2.1.</span> <span class="nav-text">Mac &amp; Linux 版</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Windows%E7%89%88"><span class="nav-number">2.2.</span> <span class="nav-text">Windows版</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E9%85%8D%E7%BD%AE%E5%B8%B8%E8%A7%84%E7%9A%84SSH%E8%BF%9E%E6%8E%A5"><span class="nav-number">2.2.1.</span> <span class="nav-text">1.配置常规的SSH连接</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E6%B7%BB%E5%8A%A0%E9%9A%A7%E9%81%93"><span class="nav-number">2.2.2.</span> <span class="nav-text">2.添加隧道</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%85%B6%E4%BB%96"><span class="nav-number">2.2.3.</span> <span class="nav-text">3.其他</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#SSH%E9%9A%A7%E9%81%93%E4%BD%BF%E7%94%A8"><span class="nav-number">3.</span> <span class="nav-text">SSH隧道使用</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%A9%E6%B5%8F%E8%A7%88%E5%99%A8%E8%AE%BF%E9%97%AE%E5%86%85%E7%BD%91%E6%9C%8D%E5%8A%A1"><span class="nav-number">3.1.</span> <span class="nav-text">让浏览器访问内网服务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8EProxifier%E9%85%8D%E5%90%88%E4%BD%BF%E7%94%A8"><span class="nav-number">3.2.</span> <span class="nav-text">与Proxifier配合使用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E6%96%B9%E6%B3%95"><span class="nav-number">3.2.1.</span> <span class="nav-text">配置方法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E9%85%8D%E7%BD%AE%E4%BB%A3%E7%90%86%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="nav-number">3.2.1.1.</span> <span class="nav-text">1 配置代理服务器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E9%85%8D%E7%BD%AE%E8%A7%84%E5%88%99"><span class="nav-number">3.2.1.2.</span> <span class="nav-text">2 配置规则</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E"><span class="nav-number">3.2.2.</span> <span class="nav-text">3 使用说明</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/images/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2017/06/13/ssh-tunnel-with-windows/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="一条通往服务器所有端口的隧道 | Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一条通往服务器所有端口的隧道
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2017-06-13 06:30:00" itemprop="dateCreated datePublished" datetime="2017-06-13T06:30:00+08:00">2017-06-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-12-03 17:20:44" itemprop="dateModified" datetime="2022-12-03T17:20:44+08:00">2022-12-03</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p><img src="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/tunnel-899053_640.jpg"></p>
+<h1 id="应用场景"><a href="#应用场景" class="headerlink" title="应用场景"></a>应用场景</h1><p>通常为了安全,服务器需要通过跳板机访问，服务器对外网暴露的端口也严格限制。这种情况下若要在本地<br>访问服务器上的服务或系统就会比较蛋疼。<br>有一个简单的解决方案，就是在本地和跳板机之间建立SSH隧道。SSH隧道提供了一个网络代理服务，<br>通过该代理服务可以直接访问跳板机所在的局域网，即服务器上的任意端口，服务都可以直接访问。</p>
+<p>本文介绍的方法比一般的端口映射更方便，不需要为每个端口配置一条SSH隧道，包括Windows、Mac、Linux上的操作方法。</p>
+<span id="more"></span>
+
+<h1 id="SSH隧道建立"><a href="#SSH隧道建立" class="headerlink" title="SSH隧道建立"></a>SSH隧道建立</h1><h2 id="Mac-amp-Linux-版"><a href="#Mac-amp-Linux-版" class="headerlink" title="Mac &amp; Linux 版"></a>Mac &amp; Linux 版</h2><p>非常简单，只需一条命令即可建立SSH隧道。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh user@host -ND 127.0.0.1:1080</span><br></pre></td></tr></table></figure>
+<p>其实就是在常规的SSH命令加上<code>-D</code>参数，开启动态端口转发，使SSH成为了SOCKS server，在后台提供网络服务。</p>
+<p>而<code>-N</code>参数是让ssh不要返回命令行终端，因为我们不需要发送命令，只是做转发。</p>
+<p>1080是绑定的本地端口，也就是SOCKS server提供服务的端口，可以换成其他端口号。</p>
+<p>127.0.0.1表示只能有你本机访问这个服务，去掉IP只留下端口号的话，就没有这个限制了。</p>
+<p>PS:SSH隧道相当于在服务器的防火墙上打了个洞，可能有安全隐患，所以建议加上仅限本机访问的限制。</p>
+<h2 id="Windows版"><a href="#Windows版" class="headerlink" title="Windows版"></a>Windows版</h2><p>这里使用Windows上常用的XShell做说明。</p>
+<h3 id="1-配置常规的SSH连接"><a href="#1-配置常规的SSH连接" class="headerlink" title="1.配置常规的SSH连接"></a>1.配置常规的SSH连接</h3><p>配置用户名，密码，主机地址(通常是跳板机)等。</p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/xshell-1.png" alt="xshell-1"></p>
+<h3 id="2-添加隧道"><a href="#2-添加隧道" class="headerlink" title="2.添加隧道"></a>2.添加隧道</h3><p><img src="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/xshell-2.png" alt="xshell-2"></p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/xshell-3.png" alt="xshell-3"></p>
+<h3 id="3-其他"><a href="#3-其他" class="headerlink" title="3.其他"></a>3.其他</h3><p><img src="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/xshell-4.png" alt="xshell-4"></p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/xshell-5.png" alt="xshell-5"></p>
+<h1 id="SSH隧道使用"><a href="#SSH隧道使用" class="headerlink" title="SSH隧道使用"></a>SSH隧道使用</h1><h2 id="让浏览器访问内网服务"><a href="#让浏览器访问内网服务" class="headerlink" title="让浏览器访问内网服务"></a>让浏览器访问内网服务</h2><p>这里介绍Chrome浏览器+SwitchyOmega插件的方法。</p>
+<p>SwitchyOmega是一个Chrome插件，下载安装地址：<br><a target="_blank" rel="noopener" href="https://chrome.google.com/webstore/detail/proxy-switchyomega/padekgcemlokbadohgkifijomclgjgif">Chrome应用商店</a><br>或者 <a target="_blank" rel="noopener" href="https://www.switchyomega.com/download/">官网下载</a></p>
+<p>安装好后，找到插件图标（一个圆圈），单击图标-&gt;选项，打开配置页面。<br>点击侧边栏的“新建情景模式（New Profile）”，添加一个代理服务器（Proxy Profile），<br>配置如下图。注意端口要填写前面SSH隧道服务的端口号。</p>
+<p>如果侧边栏中已经有一个默认的’proxy‘模式，也可以直接拿来修改。</p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/switch-1.png" alt="switch-1"></p>
+<p>配置好后单击SwitchyOmega的图标，切换到新建的情景模式，然后所有的浏览器请求都会以SSH隧道作为<br>代理了，这时你应该已经可以访问服务器上的任何web服务了。</p>
+<p>但是！我们并不需要所有的浏览器流量都走代理哇。SwitchyOmega其实可以根据URL的规则，自动选择走不走代理。<br>默认已经存在的一个情景模式’auto switch‘，就是一个可以根据规则来自动选择代理服务的模式。<br>比如在’auto switch‘模式中配置一条规则，填写<code>10.1.*</code>，并选择proxy模式。这就代表将<code>10.1.</code><br>开头的所有请求都用proxy模式转发，而其他不满足规则的请求，将命中最后一条’默认‘规则，<br>进行’直接访问‘，即不使用任何代理服务。</p>
+<h2 id="与Proxifier配合使用"><a href="#与Proxifier配合使用" class="headerlink" title="与Proxifier配合使用"></a>与Proxifier配合使用</h2><p>可以让任意程序访问服务器上的服务及端口,实现如下操作：</p>
+<ul>
+<li>使用客户端（如Navicat）访问服务上的数据库(如没有对公网暴露的MySQL)；</li>
+<li>让本地运行的代码访问服务器内网服务，比如HDFS,Hive,Hbase,ES等等。（对于大数据开发非常实用，<br>可以愉快的打断点调试Spark应用）</li>
+</ul>
+<h3 id="配置方法"><a href="#配置方法" class="headerlink" title="配置方法"></a>配置方法</h3><h4 id="1-配置代理服务器"><a href="#1-配置代理服务器" class="headerlink" title="1 配置代理服务器"></a>1 配置代理服务器</h4><p><img src="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/proxifier-0.png"></p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/proxifier-1.png"></p>
+<h4 id="2-配置规则"><a href="#2-配置规则" class="headerlink" title="2 配置规则"></a>2 配置规则</h4><p><img src="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/proxifier-2.png"></p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/proxifier-3.png"></p>
+<h3 id="3-使用说明"><a href="#3-使用说明" class="headerlink" title="3 使用说明"></a>3 使用说明</h3><p>配置好规则后，本地应用就可以直接访问服务器的内网IP了。</p>
+<p>比如连接数据库：</p>
+<p><img src="https://raw.githubusercontent.com/Liam8/img/master/ssh-tunnel/navicat.png"></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="followme">
+  <span>Welcome to my other publishing channels</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/SSH/" rel="tag"># SSH</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2017/03/02/kafka-operation-command/" rel="prev" title="Kafka 0.10 常用运维命令">
+                  <i class="fa fa-chevron-left"></i> Kafka 0.10 常用运维命令
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2018/02/04/diy-spark-ml-1/" rel="next" title="自定义开发Spark ML机器学习类 - 1">
+                  自定义开发Spark ML机器学习类 - 1 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

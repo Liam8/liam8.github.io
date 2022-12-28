@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"liam-blog.ml","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="Parquet is a columnar file format that supports nested data. Lots of data systems support this data format because of it’s great advantage of performance.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Details you need to know about Apache Parquet">
+<meta property="og:url" content="https://liam-blog.ml/2020/05/31/details-you-need-to-know-about-Apache-Parquet/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="Parquet is a columnar file format that supports nested data. Lots of data systems support this data format because of it’s great advantage of performance.">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://raw.github.com/apache/parquet-format/master/doc/images/FileLayout.gif">
+<meta property="og:image" content="https://github.com/apache/parquet-format/raw/master/doc/images/FileFormat.gif">
+<meta property="article:published_time" content="2020-05-31T04:25:42.000Z">
+<meta property="article:modified_time" content="2022-12-03T09:20:44.703Z">
+<meta property="article:author" content="Liam">
+<meta property="article:tag" content="Spark">
+<meta property="article:tag" content="Apache Parquet">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.github.com/apache/parquet-format/master/doc/images/FileLayout.gif">
+
+
+<link rel="canonical" href="https://liam-blog.ml/2020/05/31/details-you-need-to-know-about-Apache-Parquet/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://liam-blog.ml/2020/05/31/details-you-need-to-know-about-Apache-Parquet/","path":"2020/05/31/details-you-need-to-know-about-Apache-Parquet/","title":"Details you need to know about Apache Parquet"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Details you need to know about Apache Parquet | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3LJ1Y8TCD3"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-3LJ1Y8TCD3","only_pageview":false}</script>
+  <script src="/js/third-party/analytics/google-analytics.js"></script>
+
+
+
+
+
+
+  <script async defer data-website-id="" src=""></script>
+
+  <script defer data-domain="" src=""></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="Liam's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Liam's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hi there, 2022!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li><li class="menu-item menu-item-rss"><a href="/atom.xml" rel="section"><i class="fa fa-rss fa-fw"></i>RSS</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#File-format"><span class="nav-number">1.</span> <span class="nav-text">File format</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Metadata"><span class="nav-number">2.</span> <span class="nav-text">Metadata</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#FileMetaData"><span class="nav-number">2.1.</span> <span class="nav-text">FileMetaData</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#SchemaElement"><span class="nav-number">2.1.1.</span> <span class="nav-text">SchemaElement</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ColumnMetaData"><span class="nav-number">2.1.2.</span> <span class="nav-text">ColumnMetaData</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#PageHeader"><span class="nav-number">2.1.3.</span> <span class="nav-text">PageHeader</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#DataPageHeader"><span class="nav-number">2.1.3.1.</span> <span class="nav-text">DataPageHeader</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Parquet-tools"><span class="nav-number">3.</span> <span class="nav-text">Parquet-tools</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Use-Parquet-with-Spark"><span class="nav-number">4.</span> <span class="nav-text">Use Parquet with Spark</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Use-Parquet-with-HDFS"><span class="nav-number">5.</span> <span class="nav-text">Use Parquet with HDFS</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Reference"><span class="nav-number">6.</span> <span class="nav-text">Reference</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/images/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2020/05/31/details-you-need-to-know-about-Apache-Parquet/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Details you need to know about Apache Parquet | Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Details you need to know about Apache Parquet
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-05-31 12:25:42" itemprop="dateCreated datePublished" datetime="2020-05-31T12:25:42+08:00">2020-05-31</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-12-03 17:20:44" itemprop="dateModified" datetime="2022-12-03T17:20:44+08:00">2022-12-03</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>Parquet is a columnar file format that supports nested data. Lots of data systems support this data format because of it’s great advantage of performance.</p>
+<span id="more"></span>
+
+<h2 id="File-format"><a href="#File-format" class="headerlink" title="File format"></a>File format</h2><p><img src="https://raw.github.com/apache/parquet-format/master/doc/images/FileLayout.gif" alt="parquet-file-format"></p>
+<p>First we should known is that Apache Parquet is a binary encoding like Apache Thrift and Protocol Buffers which are not human-redable, it’s very different from some texual format like JSON, XML and CSV.</p>
+<p>In order to identify the beginning and ending of the Parquet file, it use a Magic Number(4 special bytes) as separator. Following the first magic number, there are several Row Groups and then Footer. FileMetaData is placed in Footer, because metadata is written after the data is written. Row Groups are about datas.</p>
+<blockquote>
+<p>There are three types of metadata: file metadata, column (chunk) metadata and page header metadata. All thrift structures are serialized using the TCompactProtocol.</p>
+</blockquote>
+<p>ThriftCompactProtocol is another binary encoding from <a target="_blank" rel="noopener" href="https://thrift.apache.org/">Apache Thrift</a> project.</p>
+<p>Some important conceptions listed below.</p>
+<blockquote>
+<p>Block (hdfs block): This means a block in hdfs and the meaning is unchanged for describing this file format. The file format is designed to work well on top of hdfs.</p>
+<p>File: A hdfs file that must include the metadata for the file. It does not need to actually contain the data.</p>
+<p>Row group: A logical horizontal partitioning of the data into rows. There is no physical structure that is guaranteed for a row group. A row group consists of a column chunk for each column in the dataset.</p>
+<p>Column chunk: A chunk of the data for a particular column. These live in a particular row group and is guaranteed to be contiguous in the file.</p>
+<p>Page: Column chunks are divided up into pages. A page is conceptually an indivisible unit (in terms of compression and encoding). There can be multiple page types which is interleaved in a column chunk.</p>
+<p><strong>Hierarchically, a file consists of one or more row groups. A row group contains exactly one column chunk per column. Column chunks contain one or more pages.</strong></p>
+</blockquote>
+<h2 id="Metadata"><a href="#Metadata" class="headerlink" title="Metadata"></a>Metadata</h2><p>Let’s deep into the metadata.</p>
+<p><img src="https://github.com/apache/parquet-format/raw/master/doc/images/FileFormat.gif" alt="metadata"></p>
+<p>The definition file: <a target="_blank" rel="noopener" href="https://github.com/apache/parquet-format/blob/master/src/main/thrift/parquet.thrift">Parquet thrift definition</a></p>
+<h3 id="FileMetaData"><a href="#FileMetaData" class="headerlink" title="FileMetaData"></a>FileMetaData</h3><p>Here is the definition:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Description for file metadata</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">struct</span> FileMetaData &#123;</span><br><span class="line">  <span class="comment">/** Version of this file **/</span></span><br><span class="line">  <span class="number">1</span>: required i32 version</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Parquet schema for this file.  This schema contains metadata for all the columns.</span></span><br><span class="line"><span class="comment">   * The schema is represented as a tree with a single root.  The nodes of the tree</span></span><br><span class="line"><span class="comment">   * are flattened to a list by doing a depth-first traversal.</span></span><br><span class="line"><span class="comment">   * The column metadata contains the path in the schema for that column which can be</span></span><br><span class="line"><span class="comment">   * used to map columns to nodes in the schema.</span></span><br><span class="line"><span class="comment">   * The first element is the root **/</span></span><br><span class="line">  <span class="number">2</span>: required list&lt;SchemaElement&gt; schema;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Number of rows in this file **/</span></span><br><span class="line">  <span class="number">3</span>: required i64 num_rows</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Row groups in this file **/</span></span><br><span class="line">  <span class="number">4</span>: required list&lt;RowGroup&gt; row_groups</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Optional key/value metadata **/</span></span><br><span class="line">  <span class="number">5</span>: optional list&lt;KeyValue&gt; key_value_metadata</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** String for application that wrote this file.  This should be in the format</span></span><br><span class="line"><span class="comment">   * &lt;Application&gt; version &lt;App Version&gt; (build &lt;App Build Hash&gt;).</span></span><br><span class="line"><span class="comment">   * e.g. impala version 1.0 (build 6cf94d29b2b7115df4de2c06e2ab4326d721eb55)</span></span><br><span class="line"><span class="comment">   **/</span></span><br><span class="line">  <span class="number">6</span>: optional <span class="type">string</span> created_by</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * Sort order used for the min_value and max_value fields of each column in</span></span><br><span class="line"><span class="comment">   * this file. Each sort order corresponds to one column, determined by its</span></span><br><span class="line"><span class="comment">   * position in the list, matching the position of the column in the schema.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * Without column_orders, the meaning of the min_value and max_value fields is</span></span><br><span class="line"><span class="comment">   * undefined. To ensure well-defined behaviour, if min_value and max_value are</span></span><br><span class="line"><span class="comment">   * written to a Parquet file, column_orders must be written as well.</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * The obsolete min and max fields are always sorted by signed comparison</span></span><br><span class="line"><span class="comment">   * regardless of column_orders.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="number">7</span>: optional list&lt;ColumnOrder&gt; column_orders;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>The field ‘num_rows’ is very useful when data reader wanna to count the data, for instance, when SparkSQL count on some paritioned table, Spark just sum all the ‘num_rows’ of each parquet file belong to those filtered partitions.</p>
+<p>The ‘schema’ is the most important part of this metadata, it is defined by a list of SchemaElement, that’s means each field is represented by a SchemaElement.</p>
+<h4 id="SchemaElement"><a href="#SchemaElement" class="headerlink" title="SchemaElement"></a>SchemaElement</h4><p>Here is the structure of SchemaElement.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Represents a element inside a schema definition.</span></span><br><span class="line"><span class="comment"> *  - if it is a group (inner node) then type is undefined and num_children is defined</span></span><br><span class="line"><span class="comment"> *  - if it is a primitive type (leaf) then type is defined and num_children is undefined</span></span><br><span class="line"><span class="comment"> * the nodes are listed in depth first traversal order.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">struct</span> SchemaElement &#123;</span><br><span class="line">  <span class="comment">/** Data type for this field. Not set if the current element is a non-leaf node */</span></span><br><span class="line">  <span class="number">1</span>: optional Type <span class="keyword">type</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** If type is FIXED_LEN_BYTE_ARRAY, this is the byte length of the vales.</span></span><br><span class="line"><span class="comment">   * Otherwise, if specified, this is the maximum bit length to store any of the values.</span></span><br><span class="line"><span class="comment">   * (e.g. a low cardinality INT col could have this set to 3).  Note that this is</span></span><br><span class="line"><span class="comment">   * in the schema, and therefore fixed for the entire file.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="number">2</span>: optional i32 type_length;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** repetition of the field. The root of the schema does not have a repetition_type.</span></span><br><span class="line"><span class="comment">   * All other nodes must have one */</span></span><br><span class="line">  <span class="number">3</span>: optional FieldRepetitionType repetition_type;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Name of the field in the schema */</span></span><br><span class="line">  <span class="number">4</span>: required <span class="type">string</span> name;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Nested fields.  Since thrift does not support nested fields,</span></span><br><span class="line"><span class="comment">   * the nesting is flattened to a single list by a depth-first traversal.</span></span><br><span class="line"><span class="comment">   * The children count is used to construct the nested relationship.</span></span><br><span class="line"><span class="comment">   * This field is not set when the element is a primitive type</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="number">5</span>: optional i32 num_children;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** When the schema is the result of a conversion from another model</span></span><br><span class="line"><span class="comment">   * Used to record the original type to help with cross conversion.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="number">6</span>: optional ConvertedType converted_type;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Used when this column contains decimal data.</span></span><br><span class="line"><span class="comment">   * See the DECIMAL converted type for more details.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="number">7</span>: optional i32 scale</span><br><span class="line">  <span class="number">8</span>: optional i32 precision</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** When the original schema supports field ids, this will save the</span></span><br><span class="line"><span class="comment">   * original field id in the parquet schema</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="number">9</span>: optional i32 field_id;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * The logical type of this SchemaElement</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * LogicalType replaces ConvertedType, but ConvertedType is still required</span></span><br><span class="line"><span class="comment">   * for some logical types to ensure forward-compatibility in format v1.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="number">10</span>: optional LogicalType logicalType</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>The data type of each data column is determined by both ‘type’ and ‘logicalType’ field.</p>
+<p>The ‘type’ field support several primitive types:</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">BOOLEAN: 1 bit boolean</span><br><span class="line">INT32: 32 bit signed ints</span><br><span class="line">INT64: 64 bit signed ints</span><br><span class="line">INT96: 96 bit signed ints</span><br><span class="line">FLOAT: IEEE 32-bit floating point values</span><br><span class="line">DOUBLE: IEEE 64-bit floating point values</span><br><span class="line">BYTE_ARRAY: arbitrarily long byte arrays</span><br></pre></td></tr></table></figure>
+
+<p>Logical types are some type based on primitive type, the field ‘logicalType’ tells data reader to which LogicalType should the primitive type data be transfered.</p>
+<blockquote>
+<p>Logical types are used to extend the types that parquet can be used to store, by specifying how the primitive types should be interpreted. This keeps the set of primitive types to a minimum and reuses parquet’s efficient encodings. For example, strings are stored as byte arrays (binary) with a UTF8 annotation.</p>
+</blockquote>
+<p>Many types supported by ‘logicalType’. Such as:</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">STRING,ENUM,UUID,</span><br><span class="line">DATE,TIME,TIMESTAMP,INTERVAL</span><br><span class="line">INT,DECIMAL</span><br><span class="line">JSON,BSON</span><br><span class="line">LIST,MAP</span><br><span class="line">NULL</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>INT annotation can be used to specify the maximum number of bits in the stored value. The annotation has two parameter: bit width and sign, such as:INT(8, true), INT(16, true), INT(32, true), INT(64, true).</p>
+</blockquote>
+<p>For more details about LogicalType see <a target="_blank" rel="noopener" href="https://github.com/apache/parquet-format/blob/master/LogicalTypes.md">Parquet Logical Type Definitions</a></p>
+<h4 id="ColumnMetaData"><a href="#ColumnMetaData" class="headerlink" title="ColumnMetaData"></a>ColumnMetaData</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Description for column metadata</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">struct</span> ColumnMetaData &#123;</span><br><span class="line">  <span class="comment">/** Type of this column **/</span></span><br><span class="line">  <span class="number">1</span>: required Type <span class="keyword">type</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Set of all encodings used for this column. The purpose is to validate</span></span><br><span class="line"><span class="comment">   * whether we can decode those pages. **/</span></span><br><span class="line">  <span class="number">2</span>: required list&lt;Encoding&gt; encodings</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Path in schema **/</span></span><br><span class="line">  <span class="number">3</span>: required list&lt;<span class="type">string</span>&gt; path_in_schema</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Compression codec **/</span></span><br><span class="line">  <span class="number">4</span>: required CompressionCodec codec</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Number of values in this column **/</span></span><br><span class="line">  <span class="number">5</span>: required i64 num_values</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** total byte size of all uncompressed pages in this column chunk (including the headers) **/</span></span><br><span class="line">  <span class="number">6</span>: required i64 total_uncompressed_size</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** total byte size of all compressed pages in this column chunk (including the headers) **/</span></span><br><span class="line">  <span class="number">7</span>: required i64 total_compressed_size</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Optional key/value metadata **/</span></span><br><span class="line">  <span class="number">8</span>: optional list&lt;KeyValue&gt; key_value_metadata</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Byte offset from beginning of file to first data page **/</span></span><br><span class="line">  <span class="number">9</span>: required i64 data_page_offset</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Byte offset from beginning of file to root index page **/</span></span><br><span class="line">  <span class="number">10</span>: optional i64 index_page_offset</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Byte offset from the beginning of file to first (only) dictionary page **/</span></span><br><span class="line">  <span class="number">11</span>: optional i64 dictionary_page_offset</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** optional statistics for this column chunk */</span></span><br><span class="line">  <span class="number">12</span>: optional Statistics statistics;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Set of all encodings used for pages in this column chunk.</span></span><br><span class="line"><span class="comment">   * This information can be used to determine if all data pages are</span></span><br><span class="line"><span class="comment">   * dictionary encoded for example **/</span></span><br><span class="line">  <span class="number">13</span>: optional list&lt;PageEncodingStats&gt; encoding_stats;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Each ColumnChunk has only one ColumnMetaData, so one ColumnMetaData defined how to store one column’s data in one row group.</p>
+<p>Some fields should be noticed:</p>
+<ul>
+<li>encodings: just for validation, each column’s encoding is defined in DataPageHeader(see below);</li>
+<li>codec: the compression algorithm used, such as SNAPPY, GZIP, LZO and so on;</li>
+<li>statistics: statistics information for the column of the row group. Some useful field are showed below, they are very useful for distinct counting or filtering. With the ‘max_value’ and ‘min_value’, SparkSQL can do filter push-down by skipping some row groups.</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> Statistics &#123;</span><br><span class="line">    ...</span><br><span class="line">   <span class="comment">/** count of null value in the column */</span></span><br><span class="line">   <span class="number">3</span>: optional i64 null_count;</span><br><span class="line">   <span class="comment">/** count of distinct values occurring */</span></span><br><span class="line">   <span class="number">4</span>: optional i64 distinct_count;</span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Min and max values for the column, determined by its ColumnOrder.</span></span><br><span class="line"><span class="comment">    *</span></span><br><span class="line"><span class="comment">    * Values are encoded using PLAIN encoding, except that variable-length byte</span></span><br><span class="line"><span class="comment">    * arrays do not include a length prefix.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="number">5</span>: optional binary max_value;</span><br><span class="line">   <span class="number">6</span>: optional binary min_value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="PageHeader"><a href="#PageHeader" class="headerlink" title="PageHeader"></a>PageHeader</h4><p>PageHeader is kind of like parent class of DataPageHeader, IndexPageHeader and DictionaryPageHeader, contains some common fields.</p>
+<p>Each data page has a DataPageHeader, let’s look into it below.</p>
+<h5 id="DataPageHeader"><a href="#DataPageHeader" class="headerlink" title="DataPageHeader"></a>DataPageHeader</h5><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * New page format allowing reading levels without decompressing the data</span></span><br><span class="line"><span class="comment"> * Repetition and definition levels are uncompressed</span></span><br><span class="line"><span class="comment"> * The remaining section containing the data is compressed if is_compressed is true</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="keyword">struct</span> DataPageHeaderV2 &#123;</span><br><span class="line">  <span class="comment">/** Number of values, including NULLs, in this data page. **/</span></span><br><span class="line">  <span class="number">1</span>: required i32 num_values</span><br><span class="line">  <span class="comment">/** Number of NULL values, in this data page.</span></span><br><span class="line"><span class="comment">      Number of non-null = num_values - num_nulls which is also the number of values in the data section **/</span></span><br><span class="line">  <span class="number">2</span>: required i32 num_nulls</span><br><span class="line">  <span class="comment">/** Number of rows in this data page. which means pages change on record boundaries (r = 0) **/</span></span><br><span class="line">  <span class="number">3</span>: required i32 num_rows</span><br><span class="line">  <span class="comment">/** Encoding used for data in this page **/</span></span><br><span class="line">  <span class="number">4</span>: required Encoding encoding</span><br><span class="line"></span><br><span class="line">  <span class="comment">// repetition levels and definition levels are always using RLE (without size in it)</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">/** length of the definition levels */</span></span><br><span class="line">  <span class="number">5</span>: required i32 definition_levels_byte_length;</span><br><span class="line">  <span class="comment">/** length of the repetition levels */</span></span><br><span class="line">  <span class="number">6</span>: required i32 repetition_levels_byte_length;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**  whether the values are compressed.</span></span><br><span class="line"><span class="comment">  Which means the section of the page between</span></span><br><span class="line"><span class="comment">  definition_levels_byte_length + repetition_levels_byte_length + 1 and compressed_page_size (included)</span></span><br><span class="line"><span class="comment">  is compressed with the compression_codec.</span></span><br><span class="line"><span class="comment">  If missing it is considered compressed */</span></span><br><span class="line">  <span class="number">7</span>: optional <span class="type">bool</span> is_compressed = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** optional statistics for this column chunk */</span></span><br><span class="line">  <span class="number">8</span>: optional Statistics statistics;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>encoding: This field is about how to store <strong>primitive type</strong> data with bytes, for example, a PLAIN encoding means to use 4 bytes, PLAIN_DICTIONARY means to use a dictionary.<br>For more details see <a target="_blank" rel="noopener" href="https://github.com/apache/parquet-format/blob/master/Encodings.md">Parquet encoding definitions</a></li>
+<li>statistics: statistics information for this page</li>
+</ul>
+<p>ps: The comment of statistics is wrong, it should be ‘optional statistics for the data in this page’, I have fixed that in my <a target="_blank" rel="noopener" href="https://github.com/apache/parquet-format/pull/159">PR</a>.</p>
+<p><strong>How encoding work with compression ?</strong></p>
+<p>First, the data be encoded , second, encoded output is then compressed with a generic compression algorithm specified in ColumnMetaData like Snappy.</p>
+<p>There is another description.</p>
+<blockquote>
+<p>Encoding: It’s more at application level where data representation is changed. The encoding can also minimize space usage which can give us a kind of compression.<br>Compression : In general it’s the Technic to reduce storage for given data in bytes irrespective of underline data is already encoded or not.</p>
+</blockquote>
+<h2 id="Parquet-tools"><a href="#Parquet-tools" class="headerlink" title="Parquet-tools"></a>Parquet-tools</h2><p>Parquet-tools is a convenient offical tool to play with Parquet file.</p>
+<p>If you use MacOS and homebrew, just install it by <code>brew install parquet-tools</code> .</p>
+<p>To show metadata: <code>parquet-tools meta yourfile.parquet</code></p>
+<p>Or use hadoop distribution: <code>hadoop jar ./parquet-tools-&lt;VERSION&gt;.jar &lt;command&gt;</code></p>
+<p>You’ll get something like this:</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">creator:     parquet-mr version 1.10.1 (build a89df8f9932b6ef6633d06069e50c9b7970bebd1)</span><br><span class="line">extra:       org.apache.spark.sql.parquet.row.metadata = &#123;&quot;type&quot;:&quot;struct&quot;,&quot;fields&quot;:[&#123;&quot;name&quot;:&quot;v&quot;,&quot;type&quot;:&quot;i [more]...</span><br><span class="line"></span><br><span class="line">file schema: spark_schema</span><br><span class="line">-------------------------------------------------------------------------------------------------------------------</span><br><span class="line">v:           REQUIRED INT32 R:0 D:0</span><br><span class="line">sq:          REQUIRED INT32 R:0 D:0</span><br><span class="line">str:         OPTIONAL BINARY O:UTF8 R:0 D:1</span><br><span class="line"></span><br><span class="line">row group 1: RC:5000 TS:94040</span><br><span class="line">-------------------------------------------------------------------------------------------------------------------</span><br><span class="line">v:            INT32 SNAPPY DO:0 FPO:4 SZ:20056/20050/1.00 VC:5000 ENC:PLAIN,BIT_PACKED</span><br><span class="line">sq:           INT32 SNAPPY DO:0 FPO:20060 SZ:20030/20050/1.00 VC:5000 ENC:PLAIN,BIT_PACKED</span><br><span class="line">str:          BINARY SNAPPY DO:0 FPO:40090 SZ:21960/53940/2.46 VC:5000 ENC:RLE,PLAIN,BIT_PACKED</span><br></pre></td></tr></table></figure>
+
+<p>More details: <a target="_blank" rel="noopener" href="https://github.com/apache/parquet-mr/tree/master/parquet-tools">Parquet Tools</a></p>
+<h2 id="Use-Parquet-with-Spark"><a href="#Use-Parquet-with-Spark" class="headerlink" title="Use Parquet with Spark"></a>Use Parquet with Spark</h2><p>You can find some guide here: <a target="_blank" rel="noopener" href="https://spark.apache.org/docs/latest/sql-data-sources-parquet.html">Spark SQL Guide &gt; Parquet Files</a>.</p>
+<p>With Parquet file, spark can do some optimizations.</p>
+<blockquote>
+<ul>
+<li><strong>Column projection</strong><br>  The idea behind this feature is simple: just read the data for columns that the query needs to process and skip the rest of the data. Column-oriented data formats like Parquet can implement this feature quite naturally.</li>
+<li><strong>Predicate push down</strong><br>  Predicate push down is another feature of Spark and Parquet that can improve query performance by reducing the amount of data read from Parquet files. Predicate push down works by evaluating filtering predicates in the query against metadata stored in the Parquet files.</li>
+</ul>
+</blockquote>
+<p><strong>Does predicate push down available for nest field ?</strong></p>
+<p>Yes. If the field schema is <code>user(id, name)</code>, data will be stored in two columns as <code>user.id</code> and <code>user.name</code>, then both id and name have thier own statistic info in metadata.</p>
+<h2 id="Use-Parquet-with-HDFS"><a href="#Use-Parquet-with-HDFS" class="headerlink" title="Use Parquet with HDFS"></a>Use Parquet with HDFS</h2><p>When using Parquet with HDFS, you should care about the row group size.</p>
+<blockquote>
+<p>Row group size: Larger row groups allow for larger column chunks which makes it possible to do larger sequential IO. Larger groups also require more buffering in the write path (or a two pass write). We recommend large row groups (512MB - 1GB). Since an entire row group might need to be read, we want it to completely fit on one HDFS block. Therefore, HDFS block sizes should also be set to be larger. An optimized read setup would be: 1GB row groups, 1GB HDFS block size, 1 HDFS block per HDFS file.</p>
+</blockquote>
+<p>The row group size is controlled by config named <code>parquet.block.size</code>, the default value is 128MB,  </p>
+<p>You can set it in Spark as below:<br><code>sc.hadoopConfiguration.setInt(&quot;parquet.block.size&quot;,256*1024*1024)</code><br>or<br><code>df.write.option(&quot;parquet.block.size&quot;,256*1024*1024)</code></p>
+<h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><p><a target="_blank" rel="noopener" href="https://parquet.apache.org/documentation/latest/">Apache Parquet</a></p>
+<p><a target="_blank" rel="noopener" href="https://db-blog.web.cern.ch/blog/luca-canali/2017-06-diving-spark-and-parquet-workloads-example">Diving into Spark and Parquet Workloads, by Example</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="followme">
+  <span>Welcome to my other publishing channels</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Spark/" rel="tag"># Spark</a>
+              <a href="/tags/Apache-Parquet/" rel="tag"># Apache Parquet</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/03/29/redis-lock-rate-limiter/" rel="prev" title="基于Redis实现分布式锁和分布式限流器">
+                  <i class="fa fa-chevron-left"></i> 基于Redis实现分布式锁和分布式限流器
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2021/05/08/Kafka-Fundamental-Concepts/" rel="next" title="Kafka Fundamental Concepts">
+                  Kafka Fundamental Concepts <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

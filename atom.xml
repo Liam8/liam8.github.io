@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Liam&#39;s Blog</title>
+  
+  <subtitle>Hi there, 2022!</subtitle>
+  <link href="https://liam-blog.ml/atom.xml" rel="self"/>
+  
+  <link href="https://liam-blog.ml/"/>
+  <updated>2022-12-03T09:20:44.762Z</updated>
+  <id>https://liam-blog.ml/</id>
+  
+  <author>
+    <name>Liam</name>
+    
+  </author>
+  
+  <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Extend Spark Data Source with DataFrame</title>
+    <link href="https://liam-blog.ml/2022/04/25/Extend-Spark-Data-Source/"/>
+    <id>https://liam-blog.ml/2022/04/25/Extend-Spark-Data-Source/</id>
+    <published>2022-04-25T14:39:17.000Z</published>
+    <updated>2022-12-03T09:20:44.762Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;In this article, we’ll implement a spark data source for reading and writing a Google spreadsheet, so that you’ll know how to extend the data source of Spark by yourself.&lt;/p&gt;
+&lt;h2 id=&quot;What’s-a-customized-data-source-like&quot;&gt;&lt;a href=&quot;#What’s-a-customized-data-source-like&quot; class=&quot;headerlink&quot; title=&quot;What’s a customized data source like?&quot;&gt;&lt;/a&gt;What’s a customized data source like?&lt;/h2&gt;&lt;h3 id=&quot;read-data-from-Google-Spreadsheet-into-a-DataFrame&quot;&gt;&lt;a href=&quot;#read-data-from-Google-Spreadsheet-into-a-DataFrame&quot; class=&quot;headerlink&quot; title=&quot;read data from Google Spreadsheet into a DataFrame&quot;&gt;&lt;/a&gt;read data from Google Spreadsheet into a DataFrame&lt;/h3&gt;&lt;figure class=&quot;highlight scala&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;val&lt;/span&gt; data = spark.read.format(&lt;span class=&quot;string&quot;&gt;&amp;quot;google-spreadsheet&amp;quot;&lt;/span&gt;)&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  .option(&lt;span class=&quot;string&quot;&gt;&amp;quot;credentialsPath&amp;quot;&lt;/span&gt;, credentialFile)&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  .option(&lt;span class=&quot;string&quot;&gt;&amp;quot;spreadsheetId&amp;quot;&lt;/span&gt;, spreadsheetId)&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  .option(&lt;span class=&quot;string&quot;&gt;&amp;quot;sheetName&amp;quot;&lt;/span&gt;, sheetName1)&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  .load()&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;write-data-of-a-DataFrame-into-Google-Spreadsheet&quot;&gt;&lt;a href=&quot;#write-data-of-a-DataFrame-into-Google-Spreadsheet&quot; class=&quot;headerlink&quot; title=&quot;write data of a DataFrame into Google Spreadsheet&quot;&gt;&lt;/a&gt;write data of a DataFrame into Google Spreadsheet&lt;/h3&gt;&lt;figure class=&quot;highlight scala&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;df.write.format(&lt;span class=&quot;string&quot;&gt;&amp;quot;google-spreadsheet&amp;quot;&lt;/span&gt;)&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  .option(&lt;span class=&quot;string&quot;&gt;&amp;quot;credentialsPath&amp;quot;&lt;/span&gt;, credentialFile)&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  .option(&lt;span class=&quot;string&quot;&gt;&amp;quot;spreadsheetId&amp;quot;&lt;/span&gt;, spreadsheetId)&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  .option(&lt;span class=&quot;string&quot;&gt;&amp;quot;sheetName&amp;quot;&lt;/span&gt;, sheetName)&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  .mode(&lt;span class=&quot;type&quot;&gt;SaveMode&lt;/span&gt;.&lt;span class=&quot;type&quot;&gt;Overwrite&lt;/span&gt;)&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  .save()&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;</summary>
+    
+    
+    
+    
+    <category term="Spark" scheme="https://liam-blog.ml/tags/Spark/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>How to solve dependency conflicts with Maven</title>
+    <link href="https://liam-blog.ml/2021/09/24/How-to-solve-dependency-conflicts-with-Maven/"/>
+    <id>https://liam-blog.ml/2021/09/24/How-to-solve-dependency-conflicts-with-Maven/</id>
+    <published>2021-09-24T12:25:25.000Z</published>
+    <updated>2022-12-03T09:20:44.743Z</updated>
+    
+    
+    <summary type="html">&lt;h2 id=&quot;What-are-dependency-conflicts&quot;&gt;&lt;a href=&quot;#What-are-dependency-conflicts&quot; class=&quot;headerlink&quot; title=&quot;What are dependency conflicts?&quot;&gt;&lt;/a&gt;What are dependency conflicts?&lt;/h2&gt;&lt;p&gt;Here is an example, this project has 2 dependencies, and both of them depend on the Guava library with different versions.&lt;/p&gt;
+&lt;figure class=&quot;highlight xml&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;10&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;11&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;12&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;13&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;comment&quot;&gt;&amp;lt;!-- Project dependencies --&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;dependencies&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;dependency&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;groupId&lt;/span&gt;&amp;gt;&lt;/span&gt;org.example&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;groupId&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;artifactId&lt;/span&gt;&amp;gt;&lt;/span&gt;study-maven-2&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;artifactId&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;version&lt;/span&gt;&amp;gt;&lt;/span&gt;1.0-SNAPSHOT&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;version&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;dependency&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;dependency&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;groupId&lt;/span&gt;&amp;gt;&lt;/span&gt;org.example&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;groupId&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;artifactId&lt;/span&gt;&amp;gt;&lt;/span&gt;study-maven-3&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;artifactId&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;version&lt;/span&gt;&amp;gt;&lt;/span&gt;1.0-SNAPSHOT&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;version&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;dependency&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;dependencies&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+
+&lt;figure class=&quot;highlight xml&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;10&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;11&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;groupId&lt;/span&gt;&amp;gt;&lt;/span&gt;org.example&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;groupId&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;artifactId&lt;/span&gt;&amp;gt;&lt;/span&gt;study-maven-2&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;artifactId&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;version&lt;/span&gt;&amp;gt;&lt;/span&gt;1.0-SNAPSHOT&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;version&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;dependencies&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;dependency&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;groupId&lt;/span&gt;&amp;gt;&lt;/span&gt;com.google.guava&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;groupId&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;artifactId&lt;/span&gt;&amp;gt;&lt;/span&gt;guava&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;artifactId&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;version&lt;/span&gt;&amp;gt;&lt;/span&gt;30.1.1-jre&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;version&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;dependency&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;dependencies&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+
+&lt;figure class=&quot;highlight xml&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;10&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;11&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;groupId&lt;/span&gt;&amp;gt;&lt;/span&gt;org.example&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;groupId&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;artifactId&lt;/span&gt;&amp;gt;&lt;/span&gt;study-maven-3&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;artifactId&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;version&lt;/span&gt;&amp;gt;&lt;/span&gt;1.0-SNAPSHOT&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;version&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;dependencies&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;dependency&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;groupId&lt;/span&gt;&amp;gt;&lt;/span&gt;com.google.guava&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;groupId&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;artifactId&lt;/span&gt;&amp;gt;&lt;/span&gt;guava&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;artifactId&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;version&lt;/span&gt;&amp;gt;&lt;/span&gt;29.0-jre&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;version&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;dependency&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;dependencies&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+
+&lt;p&gt;As you all know, we can’t have two classes with the same package and name in one project. So there would be conflicts if different versions of a package are imported. Obviously, in this case, only one version of Guava will be imported.&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="Maven" scheme="https://liam-blog.ml/tags/Maven/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Kafka Fundamental Concepts</title>
+    <link href="https://liam-blog.ml/2021/05/08/Kafka-Fundamental-Concepts/"/>
+    <id>https://liam-blog.ml/2021/05/08/Kafka-Fundamental-Concepts/</id>
+    <published>2021-05-08T09:16:13.000Z</published>
+    <updated>2022-12-03T09:20:44.725Z</updated>
+    
+    
+    <summary type="html">&lt;h1 id=&quot;What-is-Kafka&quot;&gt;&lt;a href=&quot;#What-is-Kafka&quot; class=&quot;headerlink&quot; title=&quot;What is Kafka?&quot;&gt;&lt;/a&gt;What is Kafka?&lt;/h1&gt;&lt;blockquote&gt;
+&lt;p&gt;&lt;a href=&quot;https://www.confluent.io/what-is-apache-kafka/&quot;&gt;Apache Kafka&lt;/a&gt; is an event streaming platform used to collect, process, store, and integrate data at scale. It has numerous use cases including distributed logging, stream processing, data integration, and pub&amp;#x2F;sub messaging.&lt;/p&gt;
+&lt;/blockquote&gt;</summary>
+    
+    
+    
+    
+    <category term="Kafka" scheme="https://liam-blog.ml/tags/Kafka/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Details you need to know about Apache Parquet</title>
+    <link href="https://liam-blog.ml/2020/05/31/details-you-need-to-know-about-Apache-Parquet/"/>
+    <id>https://liam-blog.ml/2020/05/31/details-you-need-to-know-about-Apache-Parquet/</id>
+    <published>2020-05-31T04:25:42.000Z</published>
+    <updated>2022-12-03T09:20:44.703Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;Parquet is a columnar file format that supports nested data. Lots of data systems support this data format because of it’s great advantage of performance.&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="Spark" scheme="https://liam-blog.ml/tags/Spark/"/>
+    
+    <category term="Apache Parquet" scheme="https://liam-blog.ml/tags/Apache-Parquet/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>基于Redis实现分布式锁和分布式限流器</title>
+    <link href="https://liam-blog.ml/2020/03/29/redis-lock-rate-limiter/"/>
+    <id>https://liam-blog.ml/2020/03/29/redis-lock-rate-limiter/</id>
+    <published>2020-03-29T04:37:12.000Z</published>
+    <updated>2022-12-03T09:20:44.686Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;分布式锁和分布式限流器应该是算是比较常见的需求了，而Redis现在几乎是应用的标配了，于是很多人会倾向于选择基于Redis来实现，因为不需要引入额外的依赖。&lt;/p&gt;
+&lt;p&gt;分布式锁和分布式限流器在Java领域比较成熟和常用的开源实现是Redisson(&lt;a href=&quot;https://github.com/redisson/redisson/wiki/Redisson%E9%A1%B9%E7%9B%AE%E4%BB%8B%E7%BB%8D&quot;&gt;中文官方介绍&lt;/a&gt;)，下面从它的极小部分源码，分析下分布式锁和分布式限流器的实现逻辑。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="redis" scheme="https://liam-blog.ml/tags/redis/"/>
+    
+    <category term="lock" scheme="https://liam-blog.ml/tags/lock/"/>
+    
+    <category term="rate limiter" scheme="https://liam-blog.ml/tags/rate-limiter/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Spark Core 解析 4：内存模型</title>
+    <link href="https://liam-blog.ml/2020/02/29/spark-core-memory/"/>
+    <id>https://liam-blog.ml/2020/02/29/spark-core-memory/</id>
+    <published>2020-02-29T15:20:38.000Z</published>
+    <updated>2022-12-03T09:20:44.674Z</updated>
+    
+    
+    <summary type="html">&lt;h2 id=&quot;Spark内存模型&quot;&gt;&lt;a href=&quot;#Spark内存模型&quot; class=&quot;headerlink&quot; title=&quot;Spark内存模型&quot;&gt;&lt;/a&gt;Spark内存模型&lt;/h2&gt;&lt;p&gt;Spark之所以快，很大程度上是因为它善于利用内存，大量利用内存进行存储和计算，从而减少磁盘IO，提升执行效率。&lt;/p&gt;
+&lt;p&gt;从1.6版本开始，Spark引入了统一内存管理模型（之前版本只有静态内存管理，这里不细说），找到两张图描述的很清楚：&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="Spark" scheme="https://liam-blog.ml/tags/Spark/"/>
+    
+    <category term="Spark Core" scheme="https://liam-blog.ml/tags/Spark-Core/"/>
+    
+    <category term="memory" scheme="https://liam-blog.ml/tags/memory/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Spark Core 解析 3：Shuffle</title>
+    <link href="https://liam-blog.ml/2019/12/29/spark-core-shuffle/"/>
+    <id>https://liam-blog.ml/2019/12/29/spark-core-shuffle/</id>
+    <published>2019-12-29T03:42:44.000Z</published>
+    <updated>2022-12-03T09:20:44.658Z</updated>
+    
+    
+    <summary type="html">&lt;h2 id=&quot;Overview&quot;&gt;&lt;a href=&quot;#Overview&quot; class=&quot;headerlink&quot; title=&quot;Overview&quot;&gt;&lt;/a&gt;Overview&lt;/h2&gt;&lt;p&gt;所谓shuffle就是将数据按新的规则进行分区的过程，将数据分区从旧分区转变成新分区。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://raw.githubusercontent.com/Liam8/img/master/blog/20191229115009.png&quot; alt=&quot;20191229115009.png&quot;&gt;&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="Spark" scheme="https://liam-blog.ml/tags/Spark/"/>
+    
+    <category term="Spark Core" scheme="https://liam-blog.ml/tags/Spark-Core/"/>
+    
+    <category term="shuffle" scheme="https://liam-blog.ml/tags/shuffle/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Spark Core解析 2：Scheduler 调度体系</title>
+    <link href="https://liam-blog.ml/2019/11/07/spark-core-scheduler/"/>
+    <id>https://liam-blog.ml/2019/11/07/spark-core-scheduler/</id>
+    <published>2019-11-07T14:50:27.000Z</published>
+    <updated>2022-12-03T09:20:44.598Z</updated>
+    
+    
+    <summary type="html">&lt;h2 id=&quot;Overview&quot;&gt;&lt;a href=&quot;#Overview&quot; class=&quot;headerlink&quot; title=&quot;Overview&quot;&gt;&lt;/a&gt;Overview&lt;/h2&gt;&lt;p&gt;调度系统，是贯穿整个Spark应用的主心骨，从调度系统开始入手了解Spark Core，比较容易理清头绪。&lt;/p&gt;
+&lt;p&gt;Spark的资源调度采用的是常见的两层调度，底层资源的管理和分配是第一层调度，交给YARN、Mesos或者Spark的Standalone集群处理，Application从第一层调度拿到资源后，还要进行内部的任务和资源调度，将任务和资源进行匹配，这是第二层调度，&lt;strong&gt;本文讲的就是这第二层调度&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;Spark的调度体系涉及的任务包括3个粒度，分别是Job、Stage、Task。&lt;br&gt;Job代表用户提交的一系列操作的总体，一个具体的计算任务，有明确的输入输出，一个Job由多个Stage组成；&lt;br&gt;一个Stage代表Job计算流程的一个组成部分，一个阶段，包含多个Task；&lt;br&gt;一个Task代表对一个分区的数据进行计算的具体任务。&lt;/p&gt;
+&lt;p&gt;层级关系：Job &amp;gt; Stage &amp;gt; Task&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="Spark" scheme="https://liam-blog.ml/tags/Spark/"/>
+    
+    <category term="Spark Core" scheme="https://liam-blog.ml/tags/Spark-Core/"/>
+    
+    <category term="Scheduler" scheme="https://liam-blog.ml/tags/Scheduler/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Spark Core解析 1：RDD 弹性分布式数据集</title>
+    <link href="https://liam-blog.ml/2019/10/23/spark-core-rdd/"/>
+    <id>https://liam-blog.ml/2019/10/23/spark-core-rdd/</id>
+    <published>2019-10-23T15:25:37.000Z</published>
+    <updated>2022-12-03T09:20:44.583Z</updated>
+    
+    
+    <summary type="html">&lt;h1 id=&quot;引言&quot;&gt;&lt;a href=&quot;#引言&quot; class=&quot;headerlink&quot; title=&quot;引言&quot;&gt;&lt;/a&gt;引言&lt;/h1&gt;&lt;p&gt;Spark Core是Spark的核心部分，是Spark SQL，Spark Streaming，Spark MLlib等等其他模块的基础, Spark Core提供了开发分布式应用的脚手架，使得其他模块或应用的开发者不必关心复杂的分布式计算如何实现，只需使用Spark Core提供的分布式数据结构RDD及丰富的算子API，以类似开发单机应用的方式来进行开发。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://raw.githubusercontent.com/Liam8/img/master/blog/spark.png&quot; alt=&quot;spark.png&quot;&gt;&lt;/p&gt;
+&lt;p&gt;图中最下面那个就是Spark Core啦，日常使用的RDD相关的API就属于Spark Core，而Dataset、DataFrame则属于Spark SQL。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="Spark" scheme="https://liam-blog.ml/tags/Spark/"/>
+    
+    <category term="Spark Core" scheme="https://liam-blog.ml/tags/Spark-Core/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Scala implicit 隐式转换安全驾驶指南</title>
+    <link href="https://liam-blog.ml/2019/09/28/scala-implicit/"/>
+    <id>https://liam-blog.ml/2019/09/28/scala-implicit/</id>
+    <published>2019-09-28T14:32:17.000Z</published>
+    <updated>2022-12-03T09:20:44.567Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;这篇短文将结合实例对隐式转换的各种场景进行解释和总结，希望看完的人能够安全驶过隐式转换这个大坑。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="Scala" scheme="https://liam-blog.ml/tags/Scala/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Scala并发编程实战 5：Executor线程池</title>
+    <link href="https://liam-blog.ml/2019/09/22/Scala-Concurrency-Executor/"/>
+    <id>https://liam-blog.ml/2019/09/22/Scala-Concurrency-Executor/</id>
+    <published>2019-09-22T14:38:29.000Z</published>
+    <updated>2022-12-03T09:20:44.552Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;创建线程是一个重量级操作，因为需要调用操作系统内核的API，所以最好不要频繁的创建和销毁线程，为了能够复用创建的线程，常用的办法的就是创建线程池。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="Scala" scheme="https://liam-blog.ml/tags/Scala/"/>
+    
+    <category term="并发" scheme="https://liam-blog.ml/tags/%E5%B9%B6%E5%8F%91/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Scala并发编程实战 4：Semaphore 信号量模型</title>
+    <link href="https://liam-blog.ml/2019/08/26/Scala-Concurrency-Semaphore/"/>
+    <id>https://liam-blog.ml/2019/08/26/Scala-Concurrency-Semaphore/</id>
+    <published>2019-08-26T14:28:15.000Z</published>
+    <updated>2022-12-03T09:20:44.539Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;Semaphore信号量模型，是一种通过维护计数器数值来控制并发数量的模型，Lock实现的互斥锁只允许一个线程访问临界区，而Semaphore允许有限多个线程访问临界区。&lt;/p&gt;
+&lt;p&gt;什么情况需要允许多个线程同时访问？最常见的需求就是池化资源，连接池、线程池、对象池等等。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="Scala" scheme="https://liam-blog.ml/tags/Scala/"/>
+    
+    <category term="并发" scheme="https://liam-blog.ml/tags/%E5%B9%B6%E5%8F%91/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Scala并发编程实战 3：Condition 条件变量</title>
+    <link href="https://liam-blog.ml/2019/08/03/Scala-Concurrency-in-Practice-3/"/>
+    <id>https://liam-blog.ml/2019/08/03/Scala-Concurrency-in-Practice-3/</id>
+    <published>2019-08-03T14:00:45.000Z</published>
+    <updated>2022-12-03T09:20:44.524Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;在&lt;a href=&quot;/2019/07/21/Scala-Concurrency-in-Practice-2/&quot;&gt;Scala并发编程实战：Lock 锁&lt;/a&gt;中我们了解到如何通过Lock来实现互斥操作，但是获取锁之后，如果发现条件不满足（如消费一个队列中的数据时，发现队列为空），线程要如何等待条件满足（如队列不为空）并让出锁呢？这需要用到Condition条件变量，又称作条件队列。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="Scala" scheme="https://liam-blog.ml/tags/Scala/"/>
+    
+    <category term="并发" scheme="https://liam-blog.ml/tags/%E5%B9%B6%E5%8F%91/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Scala并发编程实战 2：Lock 锁</title>
+    <link href="https://liam-blog.ml/2019/07/21/Scala-Concurrency-in-Practice-2/"/>
+    <id>https://liam-blog.ml/2019/07/21/Scala-Concurrency-in-Practice-2/</id>
+    <published>2019-07-21T02:04:21.000Z</published>
+    <updated>2022-12-03T09:20:44.510Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;synchronized作为内置锁，使用简单，不易出错，然鹅确有相当的局限性，例如，无法从等待获取锁的阻塞中中断，无法设置获取锁的超时。&lt;br&gt;所以JUC提供了另一种更灵活的加锁方式，即Lock。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="Scala" scheme="https://liam-blog.ml/tags/Scala/"/>
+    
+    <category term="并发" scheme="https://liam-blog.ml/tags/%E5%B9%B6%E5%8F%91/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Scala并发编程实战 1：Monitor与synchronized</title>
+    <link href="https://liam-blog.ml/2019/07/14/Scala-Concurrency-in-Practice-1/"/>
+    <id>https://liam-blog.ml/2019/07/14/Scala-Concurrency-in-Practice-1/</id>
+    <published>2019-07-14T10:15:48.000Z</published>
+    <updated>2022-12-03T09:20:44.494Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;Java并发编程最常用和易用的技术莫过于synchronized关键字，而Scala的并发编程之旅也可以从synchronized开始。而synchronized的背后其实是monitor技术。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="Scala" scheme="https://liam-blog.ml/tags/Scala/"/>
+    
+    <category term="并发" scheme="https://liam-blog.ml/tags/%E5%B9%B6%E5%8F%91/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Maven用户都应该知道的一些事：关于依赖的常见问题</title>
+    <link href="https://liam-blog.ml/2019/06/20/maven-details-about-dependency/"/>
+    <id>https://liam-blog.ml/2019/06/20/maven-details-about-dependency/</id>
+    <published>2019-06-20T12:15:59.000Z</published>
+    <updated>2022-12-03T09:20:44.473Z</updated>
+    
+    
+    <summary type="html">&lt;h1 id=&quot;依赖范围-scope-不同选项的区别&quot;&gt;&lt;a href=&quot;#依赖范围-scope-不同选项的区别&quot; class=&quot;headerlink&quot; title=&quot;依赖范围(scope)不同选项的区别&quot;&gt;&lt;/a&gt;依赖范围(scope)不同选项的区别&lt;/h1&gt;&lt;p&gt;依赖范围参数的作用是控制依赖在不同阶段与classpath的关系，具体区别如下图所示。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="Maven" scheme="https://liam-blog.ml/tags/Maven/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Maven用户都应该知道的一些事：构建生命周期和插件</title>
+    <link href="https://liam-blog.ml/2019/06/16/maven-lifecycle-and-plugin-goal/"/>
+    <id>https://liam-blog.ml/2019/06/16/maven-lifecycle-and-plugin-goal/</id>
+    <published>2019-06-16T09:11:31.000Z</published>
+    <updated>2022-12-03T09:20:44.451Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;&lt;strong&gt;Maven的所有实际操作都是由插件完成的，如果没有插件，Maven什么都不会干。&lt;/strong&gt;&lt;br&gt;（即时你没有在POM中配置&lt;code&gt;&amp;lt;plugin&amp;gt;&lt;/code&gt;元素，Super POM中也已经帮你引入了若干核心插件）&lt;/p&gt;
+&lt;p&gt;那么问题来了，项目构建过程中，Maven是怎么知道应该在什么时候调用哪个插件的呢？&lt;/p&gt;
+&lt;p&gt;插件的调用时机，跟’生命周期’和’插件目标’有很大关系。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="Maven" scheme="https://liam-blog.ml/tags/Maven/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Hive窗口函数实战</title>
+    <link href="https://liam-blog.ml/2019/02/20/hive-window-sql/"/>
+    <id>https://liam-blog.ml/2019/02/20/hive-window-sql/</id>
+    <published>2019-02-20T14:43:20.000Z</published>
+    <updated>2022-12-03T09:20:44.434Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;本文将介绍使用Hive强大的窗口函数，解决实际问题的方法，仅供参考。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="hive" scheme="https://liam-blog.ml/tags/hive/"/>
+    
+    <category term="sql" scheme="https://liam-blog.ml/tags/sql/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>[读书笔记] 黑客与画家</title>
+    <link href="https://liam-blog.ml/2019/01/19/Hackers-and-Painters-note/"/>
+    <id>https://liam-blog.ml/2019/01/19/Hackers-and-Painters-note/</id>
+    <published>2019-01-19T03:36:04.000Z</published>
+    <updated>2022-12-03T09:20:44.422Z</updated>
+    
+    
+    <summary type="html">&lt;h1 id=&quot;简介&quot;&gt;&lt;a href=&quot;#简介&quot; class=&quot;headerlink&quot; title=&quot;简介&quot;&gt;&lt;/a&gt;简介&lt;/h1&gt;&lt;p&gt;《黑客与画家》是硅谷创业之父Paul Graham的文集，这里的黑客指的是优秀的软件工程师，作者将黑客与画家作比较，认为与黑客最接近的职业是画家，这便是这本书书名的由来了。&lt;br&gt;Paul Graham在1995年创办了Viaweb，帮助个人用户方便的开设网上商店，1998年以5千万美元的价格卖给Yahoo公司。&lt;br&gt;2005年他创建了风投公司YC，被称为全世界最牛的创业孵化器，YC帮助了大量的创业公司（到2018年投资了1450家公司），比较成功的案例有：Airbnb，Stripe，Dropbox，Docker，GitLab等等。&lt;/p&gt;
+&lt;p&gt;这本书中包含了作者对黑客精神，创业，互联网，社会，编程语言的诸多观点，读完让人感觉受益匪浅，甚至会有创业的冲动，哈哈。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;以下是对这本书内容的一些摘抄。&lt;/p&gt;
+&lt;/blockquote&gt;</summary>
+    
+    
+    
+    
+    <category term="book" scheme="https://liam-blog.ml/tags/book/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Spark 2.x读写MySQL</title>
+    <link href="https://liam-blog.ml/2018/12/25/spark-work-with-mysql-cn/"/>
+    <id>https://liam-blog.ml/2018/12/25/spark-work-with-mysql-cn/</id>
+    <published>2018-12-25T15:42:05.000Z</published>
+    <updated>2022-12-03T09:20:44.410Z</updated>
+    
+    
+    <summary type="html">&lt;h1 id=&quot;简介&quot;&gt;&lt;a href=&quot;#简介&quot; class=&quot;headerlink&quot; title=&quot;简介&quot;&gt;&lt;/a&gt;简介&lt;/h1&gt;&lt;p&gt;从 spark 2.0 开始，我们可以使用DataFrameReader 和 DataFrameWriter来读写MySQL。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="Spark" scheme="https://liam-blog.ml/tags/Spark/"/>
+    
+    <category term="MySQL" scheme="https://liam-blog.ml/tags/MySQL/"/>
+    
+  </entry>
+  
+</feed>

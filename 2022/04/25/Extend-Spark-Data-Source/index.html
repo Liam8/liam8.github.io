@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"liam-blog.ml","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="In this article, we’ll implement a spark data source for reading and writing a Google spreadsheet, so that you’ll know how to extend the data source of Spark by yourself. What’s a customized data sour">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Extend Spark Data Source with DataFrame">
+<meta property="og:url" content="https://liam-blog.ml/2022/04/25/Extend-Spark-Data-Source/index.html">
+<meta property="og:site_name" content="Liam&#39;s Blog">
+<meta property="og:description" content="In this article, we’ll implement a spark data source for reading and writing a Google spreadsheet, so that you’ll know how to extend the data source of Spark by yourself. What’s a customized data sour">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2022-04-25T14:39:17.000Z">
+<meta property="article:modified_time" content="2022-12-03T09:20:44.762Z">
+<meta property="article:author" content="Liam">
+<meta property="article:tag" content="Spark">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://liam-blog.ml/2022/04/25/Extend-Spark-Data-Source/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://liam-blog.ml/2022/04/25/Extend-Spark-Data-Source/","path":"2022/04/25/Extend-Spark-Data-Source/","title":"Extend Spark Data Source with DataFrame"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Extend Spark Data Source with DataFrame | Liam's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3LJ1Y8TCD3"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-3LJ1Y8TCD3","only_pageview":false}</script>
+  <script src="/js/third-party/analytics/google-analytics.js"></script>
+
+
+
+
+
+
+  <script async defer data-website-id="" src=""></script>
+
+  <script defer data-domain="" src=""></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="Liam's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Liam's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Hi there, 2022!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li><li class="menu-item menu-item-rss"><a href="/atom.xml" rel="section"><i class="fa fa-rss fa-fw"></i>RSS</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#What%E2%80%99s-a-customized-data-source-like"><span class="nav-number">1.</span> <span class="nav-text">What’s a customized data source like?</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#read-data-from-Google-Spreadsheet-into-a-DataFrame"><span class="nav-number">1.1.</span> <span class="nav-text">read data from Google Spreadsheet into a DataFrame</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#write-data-of-a-DataFrame-into-Google-Spreadsheet"><span class="nav-number">1.2.</span> <span class="nav-text">write data of a DataFrame into Google Spreadsheet</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Implement"><span class="nav-number">2.</span> <span class="nav-text">Implement</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#main-class"><span class="nav-number">2.1.</span> <span class="nav-text">main class</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Reader"><span class="nav-number">2.2.</span> <span class="nav-text">Reader</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Writer"><span class="nav-number">2.3.</span> <span class="nav-text">Writer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Register-Datasource"><span class="nav-number">2.4.</span> <span class="nav-text">Register Datasource</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#End"><span class="nav-number">3.</span> <span class="nav-text">End</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Liam"
+      src="/images/long-cat.jpeg">
+  <p class="site-author-name" itemprop="name">Liam</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://liam-blog.ml/2022/04/25/Extend-Spark-Data-Source/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/long-cat.jpeg">
+      <meta itemprop="name" content="Liam">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Extend Spark Data Source with DataFrame | Liam's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Extend Spark Data Source with DataFrame
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2022-04-25 22:39:17" itemprop="dateCreated datePublished" datetime="2022-04-25T22:39:17+08:00">2022-04-25</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-12-03 17:20:44" itemprop="dateModified" datetime="2022-12-03T17:20:44+08:00">2022-12-03</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>In this article, we’ll implement a spark data source for reading and writing a Google spreadsheet, so that you’ll know how to extend the data source of Spark by yourself.</p>
+<h2 id="What’s-a-customized-data-source-like"><a href="#What’s-a-customized-data-source-like" class="headerlink" title="What’s a customized data source like?"></a>What’s a customized data source like?</h2><h3 id="read-data-from-Google-Spreadsheet-into-a-DataFrame"><a href="#read-data-from-Google-Spreadsheet-into-a-DataFrame" class="headerlink" title="read data from Google Spreadsheet into a DataFrame"></a>read data from Google Spreadsheet into a DataFrame</h3><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> data = spark.read.format(<span class="string">&quot;google-spreadsheet&quot;</span>)</span><br><span class="line">  .option(<span class="string">&quot;credentialsPath&quot;</span>, credentialFile)</span><br><span class="line">  .option(<span class="string">&quot;spreadsheetId&quot;</span>, spreadsheetId)</span><br><span class="line">  .option(<span class="string">&quot;sheetName&quot;</span>, sheetName1)</span><br><span class="line">  .load()</span><br></pre></td></tr></table></figure>
+
+<h3 id="write-data-of-a-DataFrame-into-Google-Spreadsheet"><a href="#write-data-of-a-DataFrame-into-Google-Spreadsheet" class="headerlink" title="write data of a DataFrame into Google Spreadsheet"></a>write data of a DataFrame into Google Spreadsheet</h3><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">df.write.format(<span class="string">&quot;google-spreadsheet&quot;</span>)</span><br><span class="line">  .option(<span class="string">&quot;credentialsPath&quot;</span>, credentialFile)</span><br><span class="line">  .option(<span class="string">&quot;spreadsheetId&quot;</span>, spreadsheetId)</span><br><span class="line">  .option(<span class="string">&quot;sheetName&quot;</span>, sheetName)</span><br><span class="line">  .mode(<span class="type">SaveMode</span>.<span class="type">Overwrite</span>)</span><br><span class="line">  .save()</span><br></pre></td></tr></table></figure>
+
+<span id="more"></span>
+
+<h2 id="Implement"><a href="#Implement" class="headerlink" title="Implement"></a>Implement</h2><p>In total, we’ll implement 4 files:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GoogleSpreadsheetDataSource.scala</span><br><span class="line"></span><br><span class="line">GoogleSpreadsheetDataSourceException.scala</span><br><span class="line"></span><br><span class="line">GoogleSpreadsheetDataSourceReader.scala</span><br><span class="line"></span><br><span class="line">GoogleSpreadsheetDataSourceWriter.scala</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>GoogleSpreadsheetDataSource is the main class to define a DataSource.</p>
+</li>
+<li><p>GoogleSpreadsheetDataSourceReader and GoogleSpreadsheetDataSourceWriter tell Spark how to read and write data with a Sheet separately.</p>
+</li>
+<li><p>GoogleSpreadsheetDataSourceException is just a customized exception.</p>
+</li>
+</ul>
+<p>You can check the full code here <a target="_blank" rel="noopener" href="https://github.com/Liam8/spark-google-spreadsheet-datasource">Liam8&#x2F;spark-google-spreadsheet-datasource</a>.</p>
+<h3 id="main-class"><a href="#main-class" class="headerlink" title="main class"></a>main class</h3><p>Let’s start with the main class.</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">GoogleSpreadsheetDataSource</span> <span class="keyword">extends</span> <span class="title">ReadSupport</span> <span class="keyword">with</span> <span class="title">WriteSupport</span> <span class="keyword">with</span> <span class="title">DataSourceRegister</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">createReader</span></span>(options: <span class="type">DataSourceOptions</span>): <span class="type">DataSourceReader</span> = &#123;</span><br><span class="line">    createReader(<span class="literal">null</span>, options)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">createReader</span></span>(schema: <span class="type">StructType</span>, options: <span class="type">DataSourceOptions</span>): <span class="type">DataSourceReader</span> = &#123;</span><br><span class="line">    <span class="keyword">new</span> <span class="type">GoogleSpreadsheetDataSourceReader</span>(</span><br><span class="line">      options.get(<span class="string">&quot;spreadsheetId&quot;</span>).get(),</span><br><span class="line">      options.get(<span class="string">&quot;sheetName&quot;</span>).get(),</span><br><span class="line">      options.get(<span class="string">&quot;credentialsPath&quot;</span>).get(),</span><br><span class="line">      options.getInt(<span class="string">&quot;bufferSizeOfEachPartition&quot;</span>, <span class="number">100</span>),</span><br><span class="line">      <span class="type">Option</span>(schema),</span><br><span class="line">      options.getBoolean(<span class="string">&quot;firstRowAsHeader&quot;</span>, <span class="literal">true</span>),</span><br><span class="line">      options.getInt(<span class="string">&quot;parallelism&quot;</span>,</span><br><span class="line">        <span class="type">SparkSession</span>.getActiveSession.get.sparkContext.defaultParallelism)</span><br><span class="line">    )</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">shortName</span></span>(): <span class="type">String</span> = <span class="string">&quot;google-spreadsheet&quot;</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">createWriter</span></span>(</span><br><span class="line">    writeUUID: <span class="type">String</span>, schema: <span class="type">StructType</span>, mode: <span class="type">SaveMode</span>, options: <span class="type">DataSourceOptions</span></span><br><span class="line">  ): <span class="type">Optional</span>[<span class="type">DataSourceWriter</span>] = &#123;</span><br><span class="line">    <span class="type">Optional</span>.of(<span class="keyword">new</span> <span class="type">GoogleSpreadsheetDataSourceWriter</span>(</span><br><span class="line">      mode,</span><br><span class="line">      options.get(<span class="string">&quot;spreadsheetId&quot;</span>).get(),</span><br><span class="line">      options.get(<span class="string">&quot;sheetName&quot;</span>).get(),</span><br><span class="line">      options.get(<span class="string">&quot;credentialsPath&quot;</span>).get(),</span><br><span class="line">      options.getInt(<span class="string">&quot;bufferSizeOfEachPartition&quot;</span>, <span class="number">10</span>),</span><br><span class="line">      schema,</span><br><span class="line">      options.getBoolean(<span class="string">&quot;firstRowAsHeader&quot;</span>, <span class="literal">true</span>)</span><br><span class="line">    ))</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">GoogleSpreadsheetDataSource</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">buildSheet</span></span>(credentialsPath: <span class="type">String</span>): <span class="type">Sheets</span> =</span><br><span class="line">    <span class="keyword">new</span> <span class="type">Sheets</span>.<span class="type">Builder</span>(</span><br><span class="line">      <span class="type">GoogleNetHttpTransport</span>.newTrustedTransport,</span><br><span class="line">      <span class="type">JacksonFactory</span>.getDefaultInstance,</span><br><span class="line">      <span class="keyword">new</span> <span class="type">HttpCredentialsAdapter</span>(<span class="type">GoogleCredentials</span>.fromStream(</span><br><span class="line">        <span class="keyword">this</span>.getClass.getClassLoader.getResourceAsStream(credentialsPath)</span><br><span class="line">      ).createScoped(<span class="type">SheetsScopes</span>.<span class="type">SPREADSHEETS</span>))</span><br><span class="line">    ).setApplicationName(<span class="string">&quot;GoogleSpreadsheetDataSourceReader&quot;</span>).build()</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>In this class, we can get options from DataSourceOptions to create the Reader and Writer. If you only want to read data, you don’t need to extend the WriteSupport.</p>
+<h3 id="Reader"><a href="#Reader" class="headerlink" title="Reader"></a>Reader</h3><p>In the Reader we mainly need to deal with two things, one is how to generate partitions, and another one is how to read data in one partition.</p>
+<p>The most important thing is to implement the DataSourceReader.</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">planInputPartitions</span></span>(): util.<span class="type">List</span>[<span class="type">InputPartition</span>[<span class="type">InternalRow</span>]] = &#123;</span><br><span class="line">    <span class="keyword">val</span> sheets = sheetService.spreadsheets().get(spreadsheetId)</span><br><span class="line">      .setFields(<span class="string">&quot;sheets.properties&quot;</span>).execute().getSheets</span><br><span class="line">    <span class="comment">// sheetName is case insensitive</span></span><br><span class="line">    <span class="keyword">val</span> tmpSheetName = sheetName.toLowerCase</span><br><span class="line">    <span class="keyword">val</span> sheet = sheets.asScala.find(_.getProperties.getTitle.toLowerCase == tmpSheetName).getOrElse(</span><br><span class="line">      <span class="keyword">throw</span> <span class="type">GoogleSpreadsheetDataSourceException</span>(<span class="string">s&quot;Can&#x27;t find the sheet named <span class="subst">$sheetName</span>&quot;</span>)</span><br><span class="line">    )</span><br><span class="line">    <span class="keyword">val</span> rowCount = sheet.getProperties.getGridProperties.getRowCount</span><br><span class="line">    <span class="keyword">val</span> step = <span class="type">Math</span>.ceil(rowCount / parallelism).toInt</span><br><span class="line">    <span class="keyword">val</span> start = <span class="keyword">if</span> (firstRowAsHeader) <span class="number">2</span> <span class="keyword">else</span> <span class="number">1</span></span><br><span class="line">    <span class="type">Range</span>.inclusive(start, rowCount, step).map &#123; i =&gt;</span><br><span class="line">      <span class="keyword">new</span> <span class="type">GoogleSpreadsheetInputPartition</span>(</span><br><span class="line">        credentialsPath,</span><br><span class="line">        spreadsheetId,</span><br><span class="line">        sheetName,</span><br><span class="line">        i,</span><br><span class="line">        <span class="type">Math</span>.min(i + step - <span class="number">1</span>, rowCount),</span><br><span class="line">        bufferSizeOfEachPartition,</span><br><span class="line">        originalSchema,</span><br><span class="line">        prunedSchema</span><br><span class="line">      ).asInstanceOf[<span class="type">InputPartition</span>[<span class="type">InternalRow</span>]]</span><br><span class="line">    &#125;.toList.asJava</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>In the method <code>planInputPartitions</code>, we create a list of <code>GoogleSpreadsheetInputPartition</code>.</p>
+<p><code>GoogleSpreadsheetInputPartition</code> is a subclass of <code>InputPartition</code> that holds the metadata of one partition. </p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">GoogleSpreadsheetInputPartition</span>(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="class">  credentialsPath: <span class="type">String</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  spreadsheetId: <span class="type">String</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  sheetName: <span class="type">String</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  startOffset: <span class="type">Int</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  endOffset: <span class="type">Int</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  bufferSize: <span class="type">Int</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  schema: <span class="type">StructType</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  prunedSchema: <span class="type">Option</span>[<span class="type">StructType</span>]</span></span></span><br><span class="line"><span class="params"><span class="class"></span>) <span class="keyword">extends</span> <span class="title">InputPartition</span>[<span class="type">InternalRow</span>] </span>&#123;</span><br></pre></td></tr></table></figure>
+
+<p>The <code>startOffset: Int, endOffset: Int</code> means from which offset or row current partition should read and where to stop.</p>
+ <figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> rowCount = sheet.getProperties.getGridProperties.getRowCount</span><br><span class="line"><span class="keyword">val</span> step = <span class="type">Math</span>.ceil(rowCount / parallelism).toInt</span><br></pre></td></tr></table></figure>
+
+<p>Here we get the total number of rows in the sheet, and then divide it by parallelism to get how many rows should be read in one partition. Then we can calculate the <code>startOffset</code> and <code>endOffset</code> off all pages.</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">GoogleSpreadsheetDataSourceReader</span>(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="class">  spreadsheetId: <span class="type">String</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  sheetName: <span class="type">String</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  credentialsPath: <span class="type">String</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  bufferSizeOfEachPartition: <span class="type">Int</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  var schema: <span class="type">Option</span>[<span class="type">StructType</span>] = <span class="type">None</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  firstRowAsHeader: <span class="type">Boolean</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  parallelism: <span class="type">Int</span></span></span></span><br><span class="line"><span class="params"><span class="class"></span>) <span class="keyword">extends</span> <span class="title">DataSourceReader</span> <span class="keyword">with</span> <span class="title">SupportsPushDownRequiredColumns</span> </span></span><br></pre></td></tr></table></figure>
+
+<p>Where we really do the data reading is in the class <code>GoogleSpreadsheetInputPartitionReader</code>, I override two methods here <code>override def get(): InternalRow</code> and <code>override def next(): Boolean</code>. It’s very similar like implement an iterator: <code>next()</code> returns true or false to tell if any more data to read; <code>get()</code> to get the next row of data.</p>
+<p>To improve the performance, the <code>next()</code> here read a batch of data from the sheet, and then buffs it. So the <code>get()</code> just return a row of data from the buffer.</p>
+<h3 id="Writer"><a href="#Writer" class="headerlink" title="Writer"></a>Writer</h3><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">GoogleSpreadsheetDataWriter</span>(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="class">  saveMode: <span class="type">SaveMode</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  schema: <span class="type">StructType</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  credentialsPath: <span class="type">String</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  spreadsheetId: <span class="type">String</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  sheetName: <span class="type">String</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  bufferSize: <span class="type">Int</span>,</span></span></span><br><span class="line"><span class="params"><span class="class">  firstRowAsHeader: <span class="type">Boolean</span></span></span></span><br><span class="line"><span class="params"><span class="class"></span>) <span class="keyword">extends</span> <span class="title">DataWriter</span>[<span class="type">InternalRow</span>]</span></span><br></pre></td></tr></table></figure>
+
+<p>In file <code>GoogleSpreadsheetDataSourceWriter.scala</code> the most important class is <code>GoogleSpreadsheetDataWriter</code>. In this class, we have a method <code>override def write(record: InternalRow): Unit</code> to write data of one partition into an external system. In my implementation, I put data into a buffer first, and write data into the sheet when the buffer is full.</p>
+<h3 id="Register-Datasource"><a href="#Register-Datasource" class="headerlink" title="Register Datasource"></a>Register Datasource</h3><p>If we want to make the data source can be used as the built-in data source like:<code>spark.read.format(&quot;google-spreadsheet&quot;)</code>, we need to register it first. There is a file to do this <code>/src/main/resources/META-INF/services/org.apache.spark.sql.sources.DataSourceRegister</code>.</p>
+<p>The content of this file is:</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">com.github.liam8.spark.datasource.googlesheet.<span class="type">GoogleSpreadsheetDataSource</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="End"><a href="#End" class="headerlink" title="End"></a>End</h2><p>In a work, the core part of the data source implementation is reading and writing data of one partition. The Spark framework will do most of the rest things for you.</p>
+<p>Following this way to extend the Spark data source, basically, you can let Spark read and write data with any storage.</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/Liam8/spark-google-spreadsheet-datasource">Check the repo in Github</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="followme">
+  <span>Welcome to my other publishing channels</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Spark/" rel="tag"># Spark</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/09/24/How-to-solve-dependency-conflicts-with-Maven/" rel="prev" title="How to solve dependency conflicts with Maven">
+                  <i class="fa fa-chevron-left"></i> How to solve dependency conflicts with Maven
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Liam</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
